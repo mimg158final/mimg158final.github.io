@@ -22,34 +22,54 @@
       setDoc
     } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
+    // --- Your Firebase config ---
     const firebaseConfig = {
       apiKey: "AIzaSyBwASsafY-yc1g9m8o7786UXxKzzduUY1Y",
       authDomain: "mimg158final.firebaseapp.com",
       projectId: "mimg158final"
     };
-    const app   = initializeApp(firebaseConfig);
-    const auth  = getAuth(app);
-    const db    = getFirestore(app);
+
+    const app      = initializeApp(firebaseConfig);
+    const auth     = getAuth(app);
+    const db       = getFirestore(app);
     const provider = new GoogleAuthProvider();
 
-    // Sign in flows
+    // Expose sign‑in/up functions
     window.signInWithGoogle = async () => {
       try { await signInWithPopup(auth, provider); }
       catch(e){ alert("Google sign‑in failed"); console.error(e); }
     };
     window.signInEmail = async () => {
-      const e = formEmail.value, p = formPass.value;
-      try { await signInWithEmailAndPassword(auth, e, p); }
-      catch(e){ alert("Email sign‑in failed"); console.error(e); }
+      try {
+        await signInWithEmailAndPassword(
+          auth,
+          document.getElementById("formEmail").value,
+          document.getElementById("formPass").value
+        );
+      } catch(e) {
+        alert("Email sign‑in failed");
+        console.error(e);
+      }
     };
     window.signUpEmail = async () => {
-      const e = formEmail.value, p = formPass.value;
-      try { await createUserWithEmailAndPassword(auth, e, p); }
-      catch(e){ alert("Sign‑up failed"); console.error(e); }
+      try {
+        await createUserWithEmailAndPassword(
+          auth,
+          document.getElementById("formEmail").value,
+          document.getElementById("formPass").value
+        );
+      } catch(e) {
+        alert("Sign‑up failed");
+        console.error(e);
+      }
     };
 
-    // UI toggle
     window.addEventListener("DOMContentLoaded", () => {
+      const loginSection = document.getElementById("login");
+      const appSection   = document.getElementById("app");
+      const uploadEmail  = document.getElementById("uploadEmail");
+      const form         = document.getElementById("form");
+
       onAuthStateChanged(auth, user => {
         if (user) {
           loginSection.hidden = true;
@@ -60,68 +80,108 @@
           appSection.hidden   = true;
         }
       });
-    });
 
-    // After upload: store into Firestore then redirect
-    window.handleSubmit = async e => {
-      e.preventDefault();
-      const user = auth.currentUser;
-      const email = user.email;
-      const widgets = Array.from({length:7},(_,i)=>form[`file${i+1}`].value);
-      const keys = [
-        "7-17_lecture",
-        "7-17_keim_2000",
-        "7-17_keim_2008",
-        "7-22_lecture",
-        "7-22_welch_2016",
-        "7-24_lecture",
-        "7-24_wolfe_2014"
-      ];
-      // write each assignment doc
-      for (let i=0;i<7;i++) {
-        await setDoc(
-          doc(db, "submissions", keys[i]),
-          { [email]: widgets[i] },
-          { merge: true }
-        );
-      }
-      window.location.href = "library.html";
-    };
+      form.addEventListener("submit", async e => {
+        e.preventDefault();
+        const user = auth.currentUser;
+        if (!user) return alert("You must sign in first.");
+
+        const email   = user.email;
+        const keys    = [
+          "7-17_lecture",
+          "7-17_keim_2000",
+          "7-17_keim_2008",
+          "7-22_lecture",
+          "7-22_welch_2016",
+          "7-24_lecture",
+          "7-24_wolfe_2014"
+        ];
+        // collect the 7 uploadcare URLs
+        const widgets = keys.map((_, i) => form[`file${i+1}`].value);
+
+        // write each into Firestore
+        for (let i = 0; i < keys.length; i++) {
+          await setDoc(
+            doc(db, "submissions", keys[i]),
+            { [email]: widgets[i] },
+            { merge: true }
+          );
+        }
+
+        // done → library
+        window.location.href = "library.html";
+      });
+    });
   </script>
 
-  <!-- Uploadcare -->
+  <!-- Uploadcare widget -->
   <script>
     UPLOADCARE_PUBLIC_KEY = "80954b866f0b203d4c24";
   </script>
   <script src="https://ucarecdn.com/libs/widget/3.x/uploadcare.full.min.js"></script>
 
   <style>
-    body { font-family:sans-serif; background:#f7f7f7; max-width:800px; margin:2rem auto; padding:2rem; }
-    h1 { text-align:center; }
-    section { margin-bottom:2rem; background:#fff; padding:1.5rem; border-radius:8px; box-shadow:0 2px 8px rgba(0,0,0,.1); }
-    label{display:block;margin-top:1rem;font-weight:bold}
-    input, button{margin-top:.5rem;padding:.5rem;width:100%;border:1px solid #ccc;border-radius:4px}
-    button{width:auto;background:#4285F4;color:#fff;border:none;cursor:pointer}
-    button:hover{background:#3367D6}
-    [hidden]{display:none!important}
+    body {
+      font-family: sans-serif;
+      background: #f7f7f7;
+      max-width: 800px;
+      margin: 2rem auto;
+      padding: 2rem;
+    }
+    h1 { text-align: center; }
+    section {
+      background: #fff;
+      padding: 1.5rem;
+      margin-bottom: 2rem;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    label {
+      display: block;
+      margin-top: 1rem;
+      font-weight: bold;
+    }
+    input, button {
+      width: 100%;
+      padding: 0.6rem;
+      margin-top: 0.4rem;
+      border-radius: 4px;
+      border: 1px solid #ccc;
+      box-sizing: border-box;
+    }
+    button {
+      background: #4285F4;
+      color: white;
+      border: none;
+      cursor: pointer;
+      margin-top: 1rem;
+    }
+    button:hover {
+      background: #3367D6;
+    }
+    [hidden] { display: none !important; }
   </style>
 </head>
-<body>
 
+<body>
+  <!-- Sign‑in / Sign‑up -->
   <section id="login">
     <h1>Sign In / Sign Up</h1>
     <button onclick="signInWithGoogle()">Sign in with Google</button>
-    <div style="margin:1rem 0;text-align:center;">— or —</div>
-    <input id="formEmail"    type="email"    placeholder="Email" />
-    <input id="formPass"     type="password" placeholder="Password" />
+    <div style="text-align:center; margin:1rem 0;">— or —</div>
+    <label for="formEmail">Email</label>
+    <input id="formEmail" type="email" placeholder="you@example.com" />
+    <label for="formPass">Password</label>
+    <input id="formPass" type="password" placeholder="password" />
     <button onclick="signInEmail()">Login</button>
     <button onclick="signUpEmail()">Sign Up</button>
   </section>
 
+  <!-- Upload form (shown when signed in) -->
   <section id="app" hidden>
     <h1>Submit Your Assignments</h1>
-    <form id="form" onsubmit="handleSubmit(event)">
-      <label>Email:</label>
+    <form id="form">
+      <label>Email</label>
       <input id="uploadEmail" type="email" readonly />
 
       <label>7/17 Lecture</label>
@@ -148,6 +208,5 @@
       <button type="submit">Submit &amp; Go to Library</button>
     </form>
   </section>
-
 </body>
 </html>
