@@ -3,100 +3,75 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Login</title>
+  <title>Login to Access Files</title>
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      background: #eef2f7;
-      height: 100vh;
-      margin: 0;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
+    body { font-family: Arial, sans-serif; background: #f4f4f4; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
     .login-container {
+      background: white;
+      padding: 30px;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
       width: 100%;
       max-width: 400px;
-      padding: 30px;
-      background: #fff;
-      border-radius: 12px;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
     }
-    h2 {
-      margin-top: 0;
-      text-align: center;
-      color: #333;
-    }
-    form {
-      display: flex;
-      flex-direction: column;
-    }
-    input {
-      padding: 12px;
+    h2 { text-align: center; margin-bottom: 20px; }
+    input[type="email"], input[type="password"] {
+      width: 100%;
+      padding: 10px;
       margin: 10px 0;
-      border: 1px solid #ccc;
-      border-radius: 6px;
       font-size: 16px;
+      border-radius: 5px;
+      border: 1px solid #ccc;
     }
     button {
+      width: 100%;
       padding: 12px;
       background: #007bff;
       color: white;
       border: none;
-      border-radius: 6px;
+      border-radius: 5px;
       font-size: 16px;
       cursor: pointer;
-      margin-top: 10px;
     }
-    button:hover {
-      background: #0056b3;
-    }
-    #error {
-      color: red;
+    button:hover { background: #0056b3; }
+    .bottom-link {
       text-align: center;
-      margin-top: 10px;
-    }
-    .link-text {
-      text-align: center;
+      margin-top: 15px;
       font-size: 14px;
-      margin-top: 20px;
-    }
-    .link-text a {
-      color: #007bff;
-      text-decoration: none;
-    }
-    .link-text a:hover {
-      text-decoration: underline;
     }
   </style>
 </head>
 <body>
   <div class="login-container">
-    <h2>Login to Access Submissions</h2>
-    <form onsubmit="event.preventDefault(); login();">
+    <h2>Login</h2>
+    <form onsubmit="handleLogin(event)">
       <input type="email" id="email" placeholder="Email" required />
       <input type="password" id="password" placeholder="Password" required />
       <button type="submit">Login</button>
-      <p id="error"></p>
     </form>
-    <div class="link-text">
-      Haven’t uploaded yet? <a href="index.html">Click here to submit your files</a>.
+    <div class="bottom-link">
+      Haven’t uploaded yet? <a href="index.html">Submit your files</a>
     </div>
   </div>
 
   <script>
-    function login() {
-      const email = document.getElementById('email').value.trim();
-      const password = document.getElementById('password').value.trim();
+    async function handleLogin(event) {
+      event.preventDefault();
+      const email = document.getElementById("email").value.trim();
+      const password = document.getElementById("password").value.trim();
 
-      const stored = JSON.parse(localStorage.getItem('submissions') || '[]');
-      const match = stored.find(entry => entry.email === email && entry.password === password);
-
-      if (match) {
-        localStorage.setItem('loggedInUser', JSON.stringify(match));
-        window.location.href = 'library.html';
-      } else {
-        document.getElementById('error').textContent = 'Invalid email or password.';
+      try {
+        const res = await fetch("https://ucarecdn.com/d20eea23-91a0-4875-9fff-b7488dac38bb/credentials.json");
+        const users = await res.json();
+        const user = users.find(u => u.email === email && u.password === password);
+        if (user) {
+          localStorage.setItem("loggedInUser", JSON.stringify(user));
+          window.location.href = "library.html";
+        } else {
+          alert("Incorrect email or password.");
+        }
+      } catch (err) {
+        alert("Error logging in. Please try again later.");
       }
     }
   </script>
