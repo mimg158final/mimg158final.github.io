@@ -7,35 +7,82 @@
   <style>
     body {
       font-family: Arial, sans-serif;
+      background: #eef2f7;
+      height: 100vh;
+      margin: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .login-container {
+      width: 100%;
       max-width: 400px;
-      margin: 100px auto;
-      padding: 20px;
-      border: 1px solid #ccc;
-      border-radius: 8px;
-      background: #f9f9f9;
+      padding: 30px;
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
     }
     h2 {
+      margin-top: 0;
       text-align: center;
+      color: #333;
     }
-    input, button {
-      display: block;
-      width: 100%;
-      padding: 10px;
-      margin: 15px 0;
+    form {
+      display: flex;
+      flex-direction: column;
+    }
+    input {
+      padding: 12px;
+      margin: 10px 0;
+      border: 1px solid #ccc;
+      border-radius: 6px;
       font-size: 16px;
+    }
+    button {
+      padding: 12px;
+      background: #007bff;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      font-size: 16px;
+      cursor: pointer;
+      margin-top: 10px;
+    }
+    button:hover {
+      background: #0056b3;
     }
     #error {
       color: red;
       text-align: center;
+      margin-top: 10px;
+    }
+    .link-text {
+      text-align: center;
+      font-size: 14px;
+      margin-top: 20px;
+    }
+    .link-text a {
+      color: #007bff;
+      text-decoration: none;
+    }
+    .link-text a:hover {
+      text-decoration: underline;
     }
   </style>
 </head>
 <body>
-  <h2>Login to Access Submissions</h2>
-  <input type="email" id="email" placeholder="Email" required />
-  <input type="password" id="password" placeholder="Password" required />
-  <button onclick="login()">Login</button>
-  <p id="error"></p>
+  <div class="login-container">
+    <h2>Login to Access Submissions</h2>
+    <form onsubmit="event.preventDefault(); login();">
+      <input type="email" id="email" placeholder="Email" required />
+      <input type="password" id="password" placeholder="Password" required />
+      <button type="submit">Login</button>
+      <p id="error"></p>
+    </form>
+    <div class="link-text">
+      Haven’t uploaded yet? <a href="index.html">Click here to submit your files</a>.
+    </div>
+  </div>
 
   <script>
     function login() {
@@ -53,8 +100,5 @@
       }
     }
   </script>
-  <p style="text-align: center; font-size: 14px;">
-    Haven’t uploaded yet? <a href="index.html">Click here to submit your files</a>.
-  </p>
 </body>
 </html>
