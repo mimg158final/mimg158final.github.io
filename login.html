@@ -1,72 +1,57 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Login Viewer</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Login Page</title>
   <style>
     body {
       font-family: sans-serif;
-      background-color: #f7f7f7;
+      background-color: #f0f0f0;
       padding: 2rem;
       max-width: 600px;
       margin: auto;
-    }
-    h1 {
       text-align: center;
     }
-    button {
-      display: block;
-      margin: 1rem auto;
-      padding: 0.8rem 1.5rem;
-      background-color: #007bff;
-      color: white;
-      border: none;
-      border-radius: 6px;
-      cursor: pointer;
+    h1 {
+      margin-bottom: 2rem;
     }
-    button:hover {
-      background-color: #0056b3;
-    }
-    #output {
+    #result {
+      font-size: 2rem;
       margin-top: 2rem;
-      background: white;
-      padding: 1rem;
-      border-radius: 6px;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
-    }
-    .user {
-      padding: 0.5rem 0;
-      border-bottom: 1px solid #eee;
     }
   </style>
 </head>
 <body>
-  <h1>View All Users</h1>
-  <button onclick="loadUsers()">Load Users</button>
-  <div id="output"></div>
+  <h1>Login Verification</h1>
+  <div id="result">Checking...</div>
 
   <script>
-    async function loadUsers() {
-      const url = "https://ucarecdn.com/6a09f5d3-8753-446f-a029-b1199d5b7143/pass.json";
-      const output = document.getElementById("output");
-      output.innerHTML = "Loading...";
+    async function verifyLogin() {
+      const query = new URLSearchParams(window.location.search);
+      const email = query.get("email");
+      const password = query.get("password");
+
+      const resultDiv = document.getElementById("result");
 
       try {
-        const res = await fetch(url);
+        const res = await fetch("https://ucarecdn.com/6a09f5d3-8753-446f-a029-b1199d5b7143/pass.json");
         const users = await res.json();
 
-        output.innerHTML = users.map(user => `
-          <div class="user">
-            <strong>Email:</strong> ${user.email}<br>
-            <strong>Password:</strong> ${user.password}
-          </div>
-        `).join("");
+        const match = users.find(user => user.email === email && user.password === password);
+
+        if (match) {
+          resultDiv.textContent = "Success ✅";
+        } else {
+          resultDiv.textContent = ":(";
+        }
       } catch (err) {
-        output.innerHTML = `<p style="color:red;">Failed to load users.</p>`;
         console.error(err);
+        resultDiv.textContent = "Error loading user data";
       }
     }
+
+    verifyLogin();
   </script>
 </body>
 </html>
