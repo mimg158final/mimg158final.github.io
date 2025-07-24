@@ -35,17 +35,30 @@
       return JSON.parse(localStorage.getItem("submissions") || "[]");
     }
 
-    function renderFileList() {
+    async function validateURL(url) {
+      try {
+        const response = await fetch(url, { method: 'HEAD' });
+        return response.ok;
+      } catch (e) {
+        return false;
+      }
+    }
+
+    async function renderFileList() {
       const container = document.getElementById("file-list");
       container.innerHTML = "";
       const submissions = getSubmissions();
       const sectionFiles = Array(folderNames.length).fill(null).map(() => []);
 
-      submissions.forEach((user) => {
-        user.uploads.forEach((url, index) => {
-          sectionFiles[index].push({ email: user.email, url });
-        });
-      });
+      for (const user of submissions) {
+        for (let i = 0; i < user.uploads.length; i++) {
+          const url = user.uploads[i];
+          const exists = await validateURL(url);
+          if (exists) {
+            sectionFiles[i].push({ email: user.email, url });
+          }
+        }
+      }
 
       folderNames.forEach((title, idx) => {
         const section = document.createElement("section");
