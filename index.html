@@ -8,42 +8,85 @@
   <!-- Firebase SDK -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-    import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+    import {
+      getAuth,
+      GoogleAuthProvider,
+      signInWithPopup,
+      signInWithEmailAndPassword,
+      createUserWithEmailAndPassword,
+      onAuthStateChanged
+    } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+    import {
+      getFirestore,
+      doc,
+      setDoc
+    } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyBwASsafY-yc1g9m8o7786UXxKzzduUY1Y",
       authDomain: "mimg158final.firebaseapp.com",
+      projectId: "mimg158final"
     };
-
-    const app = initializeApp(firebaseConfig);
-    const auth = getAuth(app);
+    const app   = initializeApp(firebaseConfig);
+    const auth  = getAuth(app);
+    const db    = getFirestore(app);
     const provider = new GoogleAuthProvider();
 
+    // Sign in flows
     window.signInWithGoogle = async () => {
-      try {
-        await signInWithPopup(auth, provider);
-      } catch (err) {
-        console.error("Login failed", err);
-        alert("Login failed");
-      }
+      try { await signInWithPopup(auth, provider); }
+      catch(e){ alert("Google sign‑in failed"); console.error(e); }
+    };
+    window.signInEmail = async () => {
+      const e = formEmail.value, p = formPass.value;
+      try { await signInWithEmailAndPassword(auth, e, p); }
+      catch(e){ alert("Email sign‑in failed"); console.error(e); }
+    };
+    window.signUpEmail = async () => {
+      const e = formEmail.value, p = formPass.value;
+      try { await createUserWithEmailAndPassword(auth, e, p); }
+      catch(e){ alert("Sign‑up failed"); console.error(e); }
     };
 
+    // UI toggle
     window.addEventListener("DOMContentLoaded", () => {
-      const loginSection = document.getElementById("login");
-      const appSection = document.getElementById("app");
-      const emailField = document.getElementById("email");
-
-      onAuthStateChanged(auth, (user) => {
+      onAuthStateChanged(auth, user => {
         if (user) {
-          loginSection.style.display = "none";
-          appSection.style.display = "block";
-          emailField.value = user.email;
+          loginSection.hidden = true;
+          appSection.hidden   = false;
+          uploadEmail.value   = user.email;
         } else {
-          loginSection.style.display = "block";
-          appSection.style.display = "none";
+          loginSection.hidden = false;
+          appSection.hidden   = true;
         }
       });
     });
+
+    // After upload: store into Firestore then redirect
+    window.handleSubmit = async e => {
+      e.preventDefault();
+      const user = auth.currentUser;
+      const email = user.email;
+      const widgets = Array.from({length:7},(_,i)=>form[`file${i+1}`].value);
+      const keys = [
+        "7-17_lecture",
+        "7-17_keim_2000",
+        "7-17_keim_2008",
+        "7-22_lecture",
+        "7-22_welch_2016",
+        "7-24_lecture",
+        "7-24_wolfe_2014"
+      ];
+      // write each assignment doc
+      for (let i=0;i<7;i++) {
+        await setDoc(
+          doc(db, "submissions", keys[i]),
+          { [email]: widgets[i] },
+          { merge: true }
+        );
+      }
+      window.location.href = "library.html";
+    };
   </script>
 
   <!-- Uploadcare -->
@@ -53,67 +96,33 @@
   <script src="https://ucarecdn.com/libs/widget/3.x/uploadcare.full.min.js"></script>
 
   <style>
-    body {
-      font-family: sans-serif;
-      background-color: #f7f7f7;
-      max-width: 800px;
-      margin: 2rem auto;
-      padding: 2rem;
-    }
-    h1 {
-      text-align: center;
-    }
-    .hidden {
-      display: none;
-    }
-    form {
-      background: white;
-      padding: 2rem;
-      border-radius: 8px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-    }
-    label {
-      display: block;
-      margin-top: 1.5rem;
-      font-weight: bold;
-    }
-    input[type="email"] {
-      width: 100%;
-      padding: 0.5rem;
-      margin-top: 0.4rem;
-    }
-    .uploadcare--widget {
-      margin-top: 0.5rem;
-    }
-    input[type="submit"],
-    button {
-      margin-top: 2rem;
-      background-color: #4CAF50;
-      color: white;
-      padding: 0.8rem 1.5rem;
-      border: none;
-      border-radius: 5px;
-      cursor: pointer;
-    }
-    button {
-      background-color: #4285F4;
-    }
-    button:hover {
-      background-color: #3367d6;
-    }
+    body { font-family:sans-serif; background:#f7f7f7; max-width:800px; margin:2rem auto; padding:2rem; }
+    h1 { text-align:center; }
+    section { margin-bottom:2rem; background:#fff; padding:1.5rem; border-radius:8px; box-shadow:0 2px 8px rgba(0,0,0,.1); }
+    label{display:block;margin-top:1rem;font-weight:bold}
+    input, button{margin-top:.5rem;padding:.5rem;width:100%;border:1px solid #ccc;border-radius:4px}
+    button{width:auto;background:#4285F4;color:#fff;border:none;cursor:pointer}
+    button:hover{background:#3367D6}
+    [hidden]{display:none!important}
   </style>
 </head>
 <body>
-  <div id="login" style="text-align: center;">
-    <h1>Please Sign In</h1>
-    <button onclick="signInWithGoogle()">Sign in with Google</button>
-  </div>
 
-  <div id="app" class="hidden">
+  <section id="login">
+    <h1>Sign In / Sign Up</h1>
+    <button onclick="signInWithGoogle()">Sign in with Google</button>
+    <div style="margin:1rem 0;text-align:center;">— or —</div>
+    <input id="formEmail"    type="email"    placeholder="Email" />
+    <input id="formPass"     type="password" placeholder="Password" />
+    <button onclick="signInEmail()">Login</button>
+    <button onclick="signUpEmail()">Sign Up</button>
+  </section>
+
+  <section id="app" hidden>
     <h1>Submit Your Assignments</h1>
-    <form onsubmit="handleSubmit(event)">
-      <label for="email">Email Address:</label>
-      <input type="email" id="email" name="email" readonly />
+    <form id="form" onsubmit="handleSubmit(event)">
+      <label>Email:</label>
+      <input id="uploadEmail" type="email" readonly />
 
       <label>7/17 Lecture</label>
       <input type="hidden" role="uploadcare-uploader" name="file1" data-multiple="false" required />
@@ -136,28 +145,9 @@
       <label>7/24 Wolfe, 2014 Paper</label>
       <input type="hidden" role="uploadcare-uploader" name="file7" data-multiple="false" required />
 
-      <input type="submit" value="Submit" />
+      <button type="submit">Submit &amp; Go to Library</button>
     </form>
-  </div>
+  </section>
 
-  <script>
-    function handleSubmit(event) {
-      event.preventDefault();
-      const form = event.target;
-      const email = form.email.value;
-      const fileUrls = [];
-
-      for (let i = 1; i <= 7; i++) {
-        const fileInput = form[`file${i}`];
-        fileUrls.push(fileInput.value);
-      }
-
-      console.log("Email:", email);
-      console.log("Uploaded files:", fileUrls);
-
-      alert("Submission successful!");
-      window.location.href = "library.html";
-    }
-  </script>
 </body>
 </html>
