@@ -5,115 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Upload Assignments</title>
 
-  <!-- Firebase SDK -->
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-    import {
-      getAuth,
-      GoogleAuthProvider,
-      signInWithPopup,
-      signInWithEmailAndPassword,
-      createUserWithEmailAndPassword,
-      onAuthStateChanged
-    } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-    import {
-      getFirestore,
-      doc,
-      setDoc
-    } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
-
-    // --- Your Firebase config ---
-    const firebaseConfig = {
-      apiKey: "AIzaSyBwASsafY-yc1g9m8o7786UXxKzzduUY1Y",
-      authDomain: "mimg158final.firebaseapp.com",
-      projectId: "mimg158final"
-    };
-
-    const app      = initializeApp(firebaseConfig);
-    const auth     = getAuth(app);
-    const db       = getFirestore(app);
-    const provider = new GoogleAuthProvider();
-
-    // Expose sign‑in/up functions
-    window.signInWithGoogle = async () => {
-      try { await signInWithPopup(auth, provider); }
-      catch(e){ alert("Google sign‑in failed"); console.error(e); }
-    };
-    window.signInEmail = async () => {
-      try {
-        await signInWithEmailAndPassword(
-          auth,
-          document.getElementById("formEmail").value,
-          document.getElementById("formPass").value
-        );
-      } catch(e) {
-        alert("Email sign‑in failed");
-        console.error(e);
-      }
-    };
-    window.signUpEmail = async () => {
-      try {
-        await createUserWithEmailAndPassword(
-          auth,
-          document.getElementById("formEmail").value,
-          document.getElementById("formPass").value
-        );
-      } catch(e) {
-        alert("Sign‑up failed");
-        console.error(e);
-      }
-    };
-
-    window.addEventListener("DOMContentLoaded", () => {
-      const loginSection = document.getElementById("login");
-      const appSection   = document.getElementById("app");
-      const uploadEmail  = document.getElementById("uploadEmail");
-      const form         = document.getElementById("form");
-
-      onAuthStateChanged(auth, user => {
-        if (user) {
-          loginSection.hidden = true;
-          appSection.hidden   = false;
-          uploadEmail.value   = user.email;
-        } else {
-          loginSection.hidden = false;
-          appSection.hidden   = true;
-        }
-      });
-
-      form.addEventListener("submit", async e => {
-        e.preventDefault();
-        const user = auth.currentUser;
-        if (!user) return alert("You must sign in first.");
-
-        const email   = user.email;
-        const keys    = [
-          "7-17_lecture",
-          "7-17_keim_2000",
-          "7-17_keim_2008",
-          "7-22_lecture",
-          "7-22_welch_2016",
-          "7-24_lecture",
-          "7-24_wolfe_2014"
-        ];
-        // collect the 7 uploadcare URLs
-        const widgets = keys.map((_, i) => form[`file${i+1}`].value);
-
-        // write each into Firestore
-        for (let i = 0; i < keys.length; i++) {
-          await setDoc(
-            doc(db, "submissions", keys[i]),
-            { [email]: widgets[i] },
-            { merge: true }
-          );
-        }
-
-        // done → library
-        window.location.href = "library.html";
-      });
-    });
-  </script>
-
   <!-- Uploadcare widget -->
   <script>
     UPLOADCARE_PUBLIC_KEY = "80954b866f0b203d4c24";
@@ -205,8 +96,106 @@
       <label>7/24 Wolfe, 2014 Paper</label>
       <input type="hidden" role="uploadcare-uploader" name="file7" data-multiple="false" required />
 
-      <button type="submit">Submit &amp; Go to Library</button>
+      <button type="submit">Submit & Go to Library</button>
     </form>
   </section>
+
+  <!-- Firebase & Firestore -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+    import {
+      getAuth,
+      GoogleAuthProvider,
+      signInWithPopup,
+      signInWithEmailAndPassword,
+      createUserWithEmailAndPassword,
+      onAuthStateChanged
+    } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+    import {
+      getFirestore,
+      doc,
+      setDoc
+    } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+    // Firebase config
+    const firebaseConfig = {
+      apiKey: "AIzaSyBwASsafY-yc1g9m8o7786UXxKzzduUY1Y",
+      authDomain: "mimg158final.firebaseapp.com",
+      projectId: "mimg158final"
+    };
+    const app      = initializeApp(firebaseConfig);
+    const auth     = getAuth(app);
+    const db       = getFirestore(app);
+    const provider = new GoogleAuthProvider();
+
+    // Element refs
+    const loginSection = document.getElementById("login");
+    const appSection   = document.getElementById("app");
+    const formEmail    = document.getElementById("formEmail");
+    const formPass     = document.getElementById("formPass");
+    const uploadEmail  = document.getElementById("uploadEmail");
+    const form         = document.getElementById("form");
+
+    // Auth functions
+    window.signInWithGoogle = async () => {
+      try { await signInWithPopup(auth, provider); }
+      catch(e){ alert("Google sign‑in failed"); console.error(e); }
+    };
+    window.signInEmail = async () => {
+      try {
+        await signInWithEmailAndPassword(auth, formEmail.value, formPass.value);
+      } catch(e) {
+        alert("Email sign‑in failed"); console.error(e);
+      }
+    };
+    window.signUpEmail = async () => {
+      try {
+        await createUserWithEmailAndPassword(auth, formEmail.value, formPass.value);
+      } catch(e) {
+        alert("Sign‑up failed"); console.error(e);
+      }
+    };
+
+    // Update UI on auth state change
+    onAuthStateChanged(auth, user => {
+      if (user) {
+        loginSection.hidden = true;
+        appSection.hidden   = false;
+        uploadEmail.value   = user.email;
+      } else {
+        loginSection.hidden = false;
+        appSection.hidden   = true;
+      }
+    });
+
+    // Handle form submission
+    form.addEventListener("submit", async e => {
+      e.preventDefault();
+      const user = auth.currentUser;
+      if (!user) return alert("You must sign in first.");
+
+      const email = user.email;
+      const keys = [
+        "7-17_lecture",
+        "7-17_keim_2000",
+        "7-17_keim_2008",
+        "7-22_lecture",
+        "7-22_welch_2016",
+        "7-24_lecture",
+        "7-24_wolfe_2014"
+      ];
+      const widgets = keys.map((_, i) => form[`file${i+1}`].value);
+
+      for (let i = 0; i < keys.length; i++) {
+        await setDoc(
+          doc(db, "submissions", keys[i]),
+          { [email]: widgets[i] },
+          { merge: true }
+        );
+      }
+
+      window.location.href = "library.html";
+    });
+  </script>
 </body>
 </html>
