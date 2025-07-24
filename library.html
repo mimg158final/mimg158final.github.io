@@ -8,15 +8,32 @@
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
   <style>
-    body { font-family: Arial, sans-serif; max-width: 800px; margin: auto; padding: 20px; }
+    body { font-family: Arial, sans-serif; max-width: 800px; margin: auto; padding: 20px; position: relative; }
     h1 { text-align: center; }
     h2 { margin-top: 30px; border-bottom: 1px solid #ccc; padding-bottom: 5px; }
     ul { list-style: none; padding-left: 0; }
     li { margin-bottom: 10px; }
     a { text-decoration: none; color: blue; }
+    .login-btn {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      background: #007bff;
+      color: white;
+      padding: 8px 14px;
+      border: none;
+      border-radius: 6px;
+      font-size: 14px;
+      cursor: pointer;
+      text-decoration: none;
+    }
+    .login-btn:hover {
+      background: #0056b3;
+    }
   </style>
 </head>
 <body>
+  <a class="login-btn" href="login.html">Login</a>
   <h1>All Uploaded Q&A Files</h1>
   <div id="file-list"></div>
 
@@ -42,7 +59,7 @@
 
     function obfuscateEmail(email) {
       const [name, domain] = email.split("@");
-      return name.slice(0, 4) + "..." + "@" + domain;
+      return name.slice(0, 4) + "...@" + domain;
     }
 
     function getFileNameFromUrl(url) {
