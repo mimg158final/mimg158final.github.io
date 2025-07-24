@@ -1,16 +1,20 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Assignment Upload</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Upload Assignments</title>
+  <script>
+    UPLOADCARE_PUBLIC_KEY = "80954b866f0b203d4c24";
+  </script>
+  <script src="https://ucarecdn.com/libs/widget/3.x/uploadcare.full.min.js"></script>
   <style>
     body {
       font-family: sans-serif;
-      background-color: #f5f5f5;
-      padding: 2rem;
+      background-color: #f7f7f7;
       max-width: 800px;
-      margin: auto;
+      margin: 2rem auto;
+      padding: 2rem;
     }
     h1 {
       text-align: center;
@@ -23,14 +27,16 @@
     }
     label {
       display: block;
-      margin-top: 1.2rem;
+      margin-top: 1.5rem;
       font-weight: bold;
     }
-    input[type="email"],
-    input[type="file"] {
+    input[type="email"] {
       width: 100%;
       padding: 0.5rem;
-      margin-top: 0.3rem;
+      margin-top: 0.4rem;
+    }
+    .uploadcare--widget {
+      margin-top: 0.5rem;
     }
     input[type="submit"] {
       margin-top: 2rem;
@@ -47,33 +53,52 @@
   </style>
 </head>
 <body>
-  <h1>Submit Your Files</h1>
-  <form>
+  <h1>Submit Your Assignments</h1>
+  <form onsubmit="handleSubmit(event)">
     <label for="email">Email Address:</label>
-    <input type="email" id="email" name="email" required>
+    <input type="email" id="email" name="email" required />
 
-    <label for="file1">7/17 Lecture - Two questions and two answers:</label>
-    <input type="file" id="file1" name="file1" required>
+    <label>7/17 Lecture</label>
+    <input type="hidden" role="uploadcare-uploader" name="file1" data-multiple="false" required />
 
-    <label for="file2">7/17 Keim, 2000 Paper - Two questions and two answers:</label>
-    <input type="file" id="file2" name="file2" required>
+    <label>7/17 Keim, 2000 Paper</label>
+    <input type="hidden" role="uploadcare-uploader" name="file2" data-multiple="false" required />
 
-    <label for="file3">7/17 Keim, 2008 Paper - Two questions and two answers:</label>
-    <input type="file" id="file3" name="file3" required>
+    <label>7/17 Keim, 2008 Paper</label>
+    <input type="hidden" role="uploadcare-uploader" name="file3" data-multiple="false" required />
 
-    <label for="file4">7/22 Lecture - Two questions and two answers:</label>
-    <input type="file" id="file4" name="file4" required>
+    <label>7/22 Lecture</label>
+    <input type="hidden" role="uploadcare-uploader" name="file4" data-multiple="false" required />
 
-    <label for="file5">7/22 Welch, 2016 Paper - Two questions and two answers:</label>
-    <input type="file" id="file5" name="file5" required>
+    <label>7/22 Welch, 2016 Paper</label>
+    <input type="hidden" role="uploadcare-uploader" name="file5" data-multiple="false" required />
 
-    <label for="file6">7/24 Lecture - Two questions and two answers:</label>
-    <input type="file" id="file6" name="file6" required>
+    <label>7/24 Lecture</label>
+    <input type="hidden" role="uploadcare-uploader" name="file6" data-multiple="false" required />
 
-    <label for="file7">7/24 Wolfe, 2014 Paper - Two questions and two answers:</label>
-    <input type="file" id="file7" name="file7" required>
+    <label>7/24 Wolfe, 2014 Paper</label>
+    <input type="hidden" role="uploadcare-uploader" name="file7" data-multiple="false" required />
 
-    <input type="submit" value="Submit">
+    <input type="submit" value="Submit" />
   </form>
+
+  <script>
+    function handleSubmit(event) {
+      event.preventDefault();
+      const form = event.target;
+      const email = form.email.value;
+      const fileUrls = [];
+
+      for (let i = 1; i <= 7; i++) {
+        const fileInput = form[`file${i}`];
+        fileUrls.push(fileInput.value);
+      }
+
+      console.log("Email:", email);
+      console.log("Uploaded file URLs:", fileUrls);
+
+      alert("Submitted!\n\n(You can now collect this info via email, webhook, or a Google Sheet.)");
+    }
+  </script>
 </body>
 </html>
