@@ -1,126 +1,84 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Q&A Submission Portal</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Submit Your Files</title>
+  <script>
+    // Generate a random 8-character password
+    function generatePassword() {
+      return Math.random().toString(36).slice(-8);
+    }
 
-  <!-- Firebase SDKs -->
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
-    import { getStorage, ref, uploadBytes } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-storage.js";
-    import { getFirestore, collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
-
-    const firebaseConfig = {
-      apiKey: "AIzaSyBwASsafY-yc1g9m8o7786UXxKzzduUY1Y",
-      authDomain: "mimg158final.firebaseapp.com",
-      projectId: "mimg158final",
-      storageBucket: "mimg158final.firebasestorage.app",
-      messagingSenderId: "896202597540",
-      appId: "1:896202597540:web:72aacf0b2b4688fb56f231",
-      measurementId: "G-0DDHJF3D7Y"
-    };
-
-    const app = initializeApp(firebaseConfig);
-    const storage = getStorage(app);
-    const db = getFirestore(app);
-
-    window.handleSubmit = async function(event) {
+    // Handle form submission
+    async function handleSubmit(event) {
       event.preventDefault();
-      const form = event.target;
-      const email = form.email.value.trim();
-      if (!email) {
-        alert("Email is required.");
+
+      const email = document.getElementById('email').value.trim();
+      const password = generatePassword();
+      const uploadResults = Array.from(document.querySelectorAll('.uploadcare-widget')).map(i => i.value);
+
+      if (!email || uploadResults.includes("")) {
+        alert("Please enter your email and upload all files.");
         return;
       }
 
-      const fileInputs = form.querySelectorAll('input[type="file"]');
-      const uploads = [];
+      const userRecord = {
+        email,
+        password,
+        uploads: uploadResults,
+        timestamp: new Date().toISOString()
+      };
 
-      for (const input of fileInputs) {
-        if (input.files.length === 0) {
-          alert("Please upload all required files before submitting.");
-          return;
-        }
-        const file = input.files[0];
-        const storageRef = ref(storage, `submissions/${email}/${input.name}-${file.name}`);
-        uploads.push(uploadBytes(storageRef, file));
-      }
+      // Store locally as no backend exists
+      const existing = JSON.parse(localStorage.getItem("submissions") || "[]");
+      existing.push(userRecord);
+      localStorage.setItem("submissions", JSON.stringify(existing));
 
-      try {
-        await Promise.all(uploads);
-        await addDoc(collection(db, "submissions"), {
-          email: email,
-          timestamp: serverTimestamp()
-        });
-        alert("Thank you for your submission! You can now access the Q&A document.");
-        window.location.href = "/library.html";
-      } catch (error) {
-        console.error("Upload failed", error);
-        alert("There was an error uploading your files. Please try again.");
-      }
+      alert("Thank you for submitting. Your password is: " + password + "\nSave this to access the files later.");
+      window.location.href = "library.html";
     }
   </script>
-
+  <script>
+    UPLOADCARE_PUBLIC_KEY = "80954b866f0b203d4c24";
+  </script>
+  <script src="https://ucarecdn.com/libs/widget/3.x/uploadcare.full.min.js"></script>
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      max-width: 700px;
-      margin: auto;
-      padding: 20px;
-    }
-    h2 {
-      border-bottom: 1px solid #ccc;
-      padding-bottom: 5px;
-    }
-    label {
-      display: block;
-      margin: 10px 0 5px;
-    }
-    input[type="file"] {
-      margin-bottom: 15px;
-    }
-    button {
-      padding: 10px 20px;
-      font-size: 16px;
-    }
+    body { font-family: Arial; max-width: 700px; margin: auto; padding: 20px; }
+    h1 { text-align: center; }
+    label { display: block; margin-top: 20px; }
+    input[type="email"], .uploadcare-widget { width: 100%; margin-top: 5px; }
+    button { margin-top: 30px; padding: 10px 20px; font-size: 16px; }
   </style>
 </head>
 <body>
-  <h1>Submit Questions and Answers</h1>
+  <h1>Submit All Required Files</h1>
   <form onsubmit="handleSubmit(event)">
-    <label>Email (required):</label>
-    <input type="email" name="email" required />
+    <label>Email:</label>
+    <input type="email" id="email" required />
 
-    <h2>7/17 Lecture</h2>
-    <label>Two Questions and Two Answers:</label>
-    <input type="file" name="lecture_717" required />
+    <label>7/17 Lecture</label>
+    <input type="hidden" role="uploadcare-uploader" data-public-key="80954b866f0b203d4c24" class="uploadcare-widget" />
 
-    <h2>7/22 Welch, 2016 Paper</h2>
-    <label>Two Questions and Two Answers:</label>
-    <input type="file" name="welch_722" required />
+    <label>7/22 Welch, 2016 Paper</label>
+    <input type="hidden" role="uploadcare-uploader" data-public-key="80954b866f0b203d4c24" class="uploadcare-widget" />
 
-    <h2>7/17 Keim, 2008 Paper</h2>
-    <label>Two Questions and Two Answers:</label>
-    <input type="file" name="keim_2008" required />
+    <label>7/17 Keim, 2008 Paper</label>
+    <input type="hidden" role="uploadcare-uploader" data-public-key="80954b866f0b203d4c24" class="uploadcare-widget" />
 
-    <h2>7/17 Keim, 2000 Paper</h2>
-    <label>Two Questions and Two Answers:</label>
-    <input type="file" name="keim_2000" required />
+    <label>7/17 Keim, 2000 Paper</label>
+    <input type="hidden" role="uploadcare-uploader" data-public-key="80954b866f0b203d4c24" class="uploadcare-widget" />
 
-    <h2>7/22 Lecture</h2>
-    <label>Two Questions and Two Answers:</label>
-    <input type="file" name="lecture_722" required />
+    <label>7/22 Lecture</label>
+    <input type="hidden" role="uploadcare-uploader" data-public-key="80954b866f0b203d4c24" class="uploadcare-widget" />
 
-    <h2>7/24 Wolfe, 2014 Paper</h2>
-    <label>Two Questions and Two Answers:</label>
-    <input type="file" name="wolfe_724" required />
+    <label>7/24 Wolfe, 2014 Paper</label>
+    <input type="hidden" role="uploadcare-uploader" data-public-key="80954b866f0b203d4c24" class="uploadcare-widget" />
 
-    <h2>7/24 Lecture</h2>
-    <label>Two Questions and Two Answers:</label>
-    <input type="file" name="lecture_724" required />
+    <label>7/24 Lecture</label>
+    <input type="hidden" role="uploadcare-uploader" data-public-key="80954b866f0b203d4c24" class="uploadcare-widget" />
 
-    <button type="submit">Submit & Get Access</button>
+    <button type="submit">Submit & Get Password</button>
   </form>
 </body>
 </html>
