@@ -34,6 +34,7 @@
       const existing = JSON.parse(localStorage.getItem("submissions") || "[]");
       existing.push(userRecord);
       localStorage.setItem("submissions", JSON.stringify(existing));
+      localStorage.setItem("loggedInUser", JSON.stringify(userRecord));
 
       alert("Thank you for submitting. Your password is: " + password + "\nSave this to access the files later.");
       window.location.href = "library.html";
@@ -49,10 +50,11 @@
     label { display: block; margin-top: 20px; }
     input[type="email"], .uploadcare-widget { width: 100%; margin-top: 5px; }
     button { margin-top: 30px; padding: 10px 20px; font-size: 16px; }
+    .login-link { text-align: center; margin-top: 20px; }
   </style>
 </head>
 <body>
-  <h1>Submit All Files</h1>
+  <h1>Submit All Required Files</h1>
   <form onsubmit="handleSubmit(event)">
     <label>Email:</label>
     <input type="email" id="email" required />
@@ -80,5 +82,8 @@
 
     <button type="submit">Submit & Get Password</button>
   </form>
+  <div class="login-link" style="position: absolute; top: 20px; right: 20px; font-size: 14px;">
+  <a href="login.html">Already submitted? Login</a>
+</div>
 </body>
 </html>
