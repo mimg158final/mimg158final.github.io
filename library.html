@@ -30,11 +30,26 @@
     .login-btn:hover {
       background: #0056b3;
     }
+    .refresh-btn {
+      display: block;
+      margin: 20px auto;
+      background: #28a745;
+      color: white;
+      padding: 10px 20px;
+      font-size: 16px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+    .refresh-btn:hover {
+      background: #1e7e34;
+    }
   </style>
 </head>
 <body>
   <a class="login-btn" href="login.html">Login</a>
   <h1>All Uploaded Q&A Files</h1>
+  <button class="refresh-btn" onclick="renderFileList()">Refresh File List</button>
   <div id="file-list"></div>
 
   <script>
@@ -118,7 +133,6 @@
       });
     }
 
-    window.addEventListener("focus", renderFileList);
     renderFileList();
   </script>
 </body>
