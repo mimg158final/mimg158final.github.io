@@ -4,10 +4,54 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Upload Assignments</title>
+
+  <!-- Firebase SDK -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+    import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyBwASsafY-yc1g9m8o7786UXxKzzduUY1Y",
+      authDomain: "mimg158final.firebaseapp.com",
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const provider = new GoogleAuthProvider();
+
+    window.signInWithGoogle = async () => {
+      try {
+        await signInWithPopup(auth, provider);
+      } catch (err) {
+        console.error("Login failed", err);
+        alert("Login failed");
+      }
+    };
+
+    window.addEventListener("DOMContentLoaded", () => {
+      const loginSection = document.getElementById("login");
+      const appSection = document.getElementById("app");
+      const emailField = document.getElementById("email");
+
+      onAuthStateChanged(auth, (user) => {
+        if (user) {
+          loginSection.style.display = "none";
+          appSection.style.display = "block";
+          emailField.value = user.email;
+        } else {
+          loginSection.style.display = "block";
+          appSection.style.display = "none";
+        }
+      });
+    });
+  </script>
+
+  <!-- Uploadcare -->
   <script>
     UPLOADCARE_PUBLIC_KEY = "80954b866f0b203d4c24";
   </script>
   <script src="https://ucarecdn.com/libs/widget/3.x/uploadcare.full.min.js"></script>
+
   <style>
     body {
       font-family: sans-serif;
@@ -18,6 +62,9 @@
     }
     h1 {
       text-align: center;
+    }
+    .hidden {
+      display: none;
     }
     form {
       background: white;
@@ -38,7 +85,8 @@
     .uploadcare--widget {
       margin-top: 0.5rem;
     }
-    input[type="submit"] {
+    input[type="submit"],
+    button {
       margin-top: 2rem;
       background-color: #4CAF50;
       color: white;
@@ -47,51 +95,52 @@
       border-radius: 5px;
       cursor: pointer;
     }
-    input[type="submit"]:hover {
-      background-color: #45a049;
+    button {
+      background-color: #4285F4;
+    }
+    button:hover {
+      background-color: #3367d6;
     }
   </style>
 </head>
 <body>
-  <h1>Submit Your Assignments</h1>
-  <form onsubmit="handleSubmit(event)">
-    <label for="email">Email Address:</label>
-    <input type="email" id="email" name="email" required />
+  <div id="login" style="text-align: center;">
+    <h1>Please Sign In</h1>
+    <button onclick="signInWithGoogle()">Sign in with Google</button>
+  </div>
 
-    <label>7/17 Lecture</label>
-    <input type="hidden" role="uploadcare-uploader" name="file1" data-multiple="false" required />
+  <div id="app" class="hidden">
+    <h1>Submit Your Assignments</h1>
+    <form onsubmit="handleSubmit(event)">
+      <label for="email">Email Address:</label>
+      <input type="email" id="email" name="email" readonly />
 
-    <label>7/17 Keim, 2000 Paper</label>
-    <input type="hidden" role="uploadcare-uploader" name="file2" data-multiple="false" required />
+      <label>7/17 Lecture</label>
+      <input type="hidden" role="uploadcare-uploader" name="file1" data-multiple="false" required />
 
-    <label>7/17 Keim, 2008 Paper</label>
-    <input type="hidden" role="uploadcare-uploader" name="file3" data-multiple="false" required />
+      <label>7/17 Keim, 2000 Paper</label>
+      <input type="hidden" role="uploadcare-uploader" name="file2" data-multiple="false" required />
 
-    <label>7/22 Lecture</label>
-    <input type="hidden" role="uploadcare-uploader" name="file4" data-multiple="false" required />
+      <label>7/17 Keim, 2008 Paper</label>
+      <input type="hidden" role="uploadcare-uploader" name="file3" data-multiple="false" required />
 
-    <label>7/22 Welch, 2016 Paper</label>
-    <input type="hidden" role="uploadcare-uploader" name="file5" data-multiple="false" required />
+      <label>7/22 Lecture</label>
+      <input type="hidden" role="uploadcare-uploader" name="file4" data-multiple="false" required />
 
-    <label>7/24 Lecture</label>
-    <input type="hidden" role="uploadcare-uploader" name="file6" data-multiple="false" required />
+      <label>7/22 Welch, 2016 Paper</label>
+      <input type="hidden" role="uploadcare-uploader" name="file5" data-multiple="false" required />
 
-    <label>7/24 Wolfe, 2014 Paper</label>
-    <input type="hidden" role="uploadcare-uploader" name="file7" data-multiple="false" required />
+      <label>7/24 Lecture</label>
+      <input type="hidden" role="uploadcare-uploader" name="file6" data-multiple="false" required />
 
-    <input type="submit" value="Submit" />
-  </form>
+      <label>7/24 Wolfe, 2014 Paper</label>
+      <input type="hidden" role="uploadcare-uploader" name="file7" data-multiple="false" required />
+
+      <input type="submit" value="Submit" />
+    </form>
+  </div>
 
   <script>
-    function generatePassword(length = 8) {
-      const chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-      let pass = "";
-      for (let i = 0; i < length; i++) {
-        pass += chars.charAt(Math.floor(Math.random() * chars.length));
-      }
-      return pass;
-    }
-
     function handleSubmit(event) {
       event.preventDefault();
       const form = event.target;
@@ -103,20 +152,11 @@
         fileUrls.push(fileInput.value);
       }
 
-      const password = generatePassword();
-
       console.log("Email:", email);
-      console.log("Uploaded file URLs:", fileUrls);
-      console.log("Generated password:", password);
+      console.log("Uploaded files:", fileUrls);
 
-      alert(`Your account has been created.\n\nEmail: ${email}\nPassword: ${password}`);
-
-      // Redirect to login.html with email and password in query string
-      const params = new URLSearchParams({
-        email: email,
-        password: password
-      });
-      window.location.href = "login.html?" + params.toString();
+      alert("Submission successful!");
+      window.location.href = "library.html";
     }
   </script>
 </body>
