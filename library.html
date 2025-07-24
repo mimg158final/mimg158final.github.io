@@ -74,7 +74,7 @@
 
     function obfuscateEmail(email) {
       const [name, domain] = email.split("@");
-      return name.slice(0, 4) + "...@" + domain;
+      return name.slice(0, 3) + "...@" + domain;
     }
 
     function getFileNameFromUrl(url) {
