@@ -1,50 +1,95 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Login</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Shared File Library</title>
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+  <meta http-equiv="Pragma" content="no-cache" />
+  <meta http-equiv="Expires" content="0" />
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      height: 100vh;
-      margin: 0;
-      background: #f2f2f2;
-    }
-    input, button {
-      padding: 10px;
-      margin: 10px;
-      width: 250px;
-    }
+    body { font-family: Arial, sans-serif; max-width: 800px; margin: auto; padding: 20px; }
+    h1 { text-align: center; }
+    h2 { margin-top: 30px; border-bottom: 1px solid #ccc; padding-bottom: 5px; }
+    ul { list-style: none; padding-left: 0; }
+    li { margin-bottom: 10px; }
+    a { text-decoration: none; color: blue; }
   </style>
 </head>
 <body>
-  <h2>Login to Access Submissions</h2>
-  <input type="email" id="email" placeholder="Email" required />
-  <input type="password" id="password" placeholder="Password" required />
-  <button onclick="login()">Login</button>
-
-  <p id="error" style="color: red;"></p>
+  <h1>All Uploaded Q&A Files</h1>
+  <div id="file-list"></div>
 
   <script>
-    function login() {
-      const email = document.getElementById('email').value;
-      const password = document.getElementById('password').value;
+    // Redirect if not logged in
+    const user = JSON.parse(localStorage.getItem("loggedInUser"));
+    if (!user || !user.email || !user.password) {
+      window.location.href = "login.html";
+    }
 
-      const stored = JSON.parse(localStorage.getItem('submissions')) || [];
-      const match = stored.find(entry => entry.email === email && entry.password === password);
+    const folderNames = [
+      "7/17 Lecture",
+      "7/22 Welch, 2016 Paper",
+      "7/17 Keim, 2008 Paper",
+      "7/17 Keim, 2000 Paper",
+      "7/22 Lecture",
+      "7/24 Wolfe, 2014 Paper",
+      "7/24 Lecture"
+    ];
 
-      if (match) {
-        localStorage.setItem('loggedInUser', JSON.stringify(match));
-        window.location.href = 'library.html';
-      } else {
-        document.getElementById('error').textContent = 'Invalid email or password.';
+    function getSubmissions() {
+      return JSON.parse(localStorage.getItem("submissions") || "[]");
+    }
+
+    async function validateURL(url) {
+      try {
+        const response = await fetch(url, { method: 'HEAD' });
+        return response.ok;
+      } catch (e) {
+        return false;
       }
     }
+
+    async function renderFileList() {
+      const container = document.getElementById("file-list");
+      container.innerHTML = "";
+      const submissions = getSubmissions();
+      const sectionFiles = Array(folderNames.length).fill(null).map(() => []);
+
+      for (const user of submissions) {
+        for (let i = 0; i < user.uploads.length; i++) {
+          const url = user.uploads[i];
+          const exists = await validateURL(url);
+          if (exists) {
+            sectionFiles[i].push({ email: user.email, url });
+          }
+        }
+      }
+
+      folderNames.forEach((title, idx) => {
+        const section = document.createElement("section");
+        const heading = document.createElement("h2");
+        heading.textContent = title;
+        section.appendChild(heading);
+
+        const ul = document.createElement("ul");
+        sectionFiles[idx].forEach((entry, i) => {
+          const li = document.createElement("li");
+          const link = document.createElement("a");
+          link.href = entry.url;
+          link.textContent = `Submission ${i + 1} (${entry.email})`;
+          link.target = "_blank";
+          li.appendChild(link);
+          ul.appendChild(li);
+        });
+
+        section.appendChild(ul);
+        container.appendChild(section);
+      });
+    }
+
+    window.addEventListener("focus", renderFileList);
+    renderFileList();
   </script>
 </body>
 </html>
