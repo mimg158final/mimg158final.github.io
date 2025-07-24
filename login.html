@@ -3,77 +3,49 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Login to Access Files</title>
-  <style>
-    body { font-family: Arial, sans-serif; background: #f4f4f4; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
-    .login-container {
-      background: white;
-      padding: 30px;
-      border-radius: 10px;
-      box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-      width: 100%;
-      max-width: 400px;
-    }
-    h2 { text-align: center; margin-bottom: 20px; }
-    input[type="email"], input[type="password"] {
-      width: 100%;
-      padding: 10px;
-      margin: 10px 0;
-      font-size: 16px;
-      border-radius: 5px;
-      border: 1px solid #ccc;
-    }
-    button {
-      width: 100%;
-      padding: 12px;
-      background: #007bff;
-      color: white;
-      border: none;
-      border-radius: 5px;
-      font-size: 16px;
-      cursor: pointer;
-    }
-    button:hover { background: #0056b3; }
-    .bottom-link {
-      text-align: center;
-      margin-top: 15px;
-      font-size: 14px;
-    }
-  </style>
-</head>
-<body>
-  <div class="login-container">
-    <h2>Login</h2>
-    <form onsubmit="handleLogin(event)">
-      <input type="email" id="email" placeholder="Email" required />
-      <input type="password" id="password" placeholder="Password" required />
-      <button type="submit">Login</button>
-    </form>
-    <div class="bottom-link">
-      Haven’t uploaded yet? <a href="index.html">Submit your files</a>
-    </div>
-  </div>
-
+  <title>Login</title>
   <script>
-    async function handleLogin(event) {
-      event.preventDefault();
+    async function login() {
       const email = document.getElementById("email").value.trim();
       const password = document.getElementById("password").value.trim();
 
       try {
-        const res = await fetch("https://ucarecdn.com/d20eea23-91a0-4875-9fff-b7488dac38bb/credentials.json");
-        const users = await res.json();
-        const user = users.find(u => u.email === email && u.password === password);
-        if (user) {
-          localStorage.setItem("loggedInUser", JSON.stringify(user));
-          window.location.href = "library.html";
-        } else {
-          alert("Incorrect email or password.");
+        const res = await fetch("https://firebasestorage.googleapis.com/v0/b/mimg158final.appspot.com/o?prefix=credentials%2F");
+        const data = await res.json();
+        const files = data.items || [];
+
+        for (const file of files) {
+          const url = \`https://firebasestorage.googleapis.com/v0/b/mimg158final.appspot.com/o/\${encodeURIComponent(file.name)}?alt=media\`;
+          const response = await fetch(url);
+          const cred = await response.json();
+          if (cred.email === email && cred.password === password) {
+            sessionStorage.setItem("loggedInUser", JSON.stringify(cred));
+            window.location.href = "library.html";
+            return;
+          }
         }
-      } catch (err) {
-        alert("Error logging in. Please try again later.");
+        document.getElementById("error").textContent = "Invalid email or password.";
+      } catch (e) {
+        document.getElementById("error").textContent = "Login failed. Try again.";
       }
     }
   </script>
+  <style>
+    body { font-family: Arial; display: flex; height: 100vh; justify-content: center; align-items: center; background: #f0f0f0; }
+    .login-box { background: white; padding: 30px; border-radius: 10px; box-shadow: 0 0 10px rgba(0,0,0,0.1); width: 300px; }
+    input { width: 100%; padding: 10px; margin-top: 10px; font-size: 16px; }
+    button { margin-top: 20px; padding: 10px; width: 100%; background: #007bff; color: white; font-size: 16px; border: none; border-radius: 5px; }
+    button:hover { background: #0056b3; }
+    #error { color: red; margin-top: 10px; text-align: center; }
+  </style>
+</head>
+<body>
+  <div class="login-box">
+    <h2>Login</h2>
+    <input id="email" type="email" placeholder="Email" />
+    <input id="password" type="password" placeholder="Password" />
+    <button onclick="login()">Login</button>
+    <div id="error"></div>
+  </div>
 </body>
 </html>
