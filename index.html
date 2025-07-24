@@ -4,32 +4,64 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Q&A Submission Portal</title>
-  <script>
-    function handleSubmit(event) {
-      event.preventDefault();
 
+  <!-- Firebase SDKs -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
+    import { getStorage, ref, uploadBytes } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-storage.js";
+    import { getFirestore, collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyBwASsafY-yc1g9m8o7786UXxKzzduUY1Y",
+      authDomain: "mimg158final.firebaseapp.com",
+      projectId: "mimg158final",
+      storageBucket: "mimg158final.firebasestorage.app",
+      messagingSenderId: "896202597540",
+      appId: "1:896202597540:web:72aacf0b2b4688fb56f231",
+      measurementId: "G-0DDHJF3D7Y"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const storage = getStorage(app);
+    const db = getFirestore(app);
+
+    window.handleSubmit = async function(event) {
+      event.preventDefault();
       const form = event.target;
       const email = form.email.value.trim();
-      const files = form.querySelectorAll('input[type="file"]');
-
-      // Check all fields are filled
       if (!email) {
         alert("Email is required.");
         return;
       }
 
-      for (const fileInput of files) {
-        if (fileInput.files.length === 0) {
+      const fileInputs = form.querySelectorAll('input[type="file"]');
+      const uploads = [];
+
+      for (const input of fileInputs) {
+        if (input.files.length === 0) {
           alert("Please upload all required files before submitting.");
           return;
         }
+        const file = input.files[0];
+        const storageRef = ref(storage, `submissions/${email}/${input.name}-${file.name}`);
+        uploads.push(uploadBytes(storageRef, file));
       }
 
-      // Simulate upload logic here (you could integrate with Firebase, Supabase, etc.)
-      alert("Thank you for your submission! You can now access the Q&A document.");
-      window.location.href = "https://docs.google.com/document/d/SHARED_DOC_ID/view"; // replace with actual doc link
+      try {
+        await Promise.all(uploads);
+        await addDoc(collection(db, "submissions"), {
+          email: email,
+          timestamp: serverTimestamp()
+        });
+        alert("Thank you for your submission! You can now access the Q&A document.");
+        window.location.href = "https://docs.google.com/document/d/SHARED_DOC_ID/view";
+      } catch (error) {
+        console.error("Upload failed", error);
+        alert("There was an error uploading your files. Please try again.");
+      }
     }
   </script>
+
   <style>
     body {
       font-family: Arial, sans-serif;
