@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Shared Q&A Library</title>
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
+    import { getStorage, ref, listAll, getDownloadURL } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-storage.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyBwASsafY-yc1g9m8o7786UXxKzzduUY1Y",
+      authDomain: "mimg158final.firebaseapp.com",
+      projectId: "mimg158final",
+      storageBucket: "mimg158final.firebasestorage.app",
+      messagingSenderId: "896202597540",
+      appId: "1:896202597540:web:72aacf0b2b4688fb56f231",
+      measurementId: "G-0DDHJF3D7Y"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const storage = getStorage(app);
+
+    const folders = {
+      lecture_717: "7/17 Lecture",
+      welch_722: "7/22 Welch, 2016 Paper",
+      keim_2008: "7/17 Keim, 2008 Paper",
+      keim_2000: "7/17 Keim, 2000 Paper",
+      lecture_722: "7/22 Lecture",
+      wolfe_724: "7/24 Wolfe, 2014 Paper",
+      lecture_724: "7/24 Lecture"
+    };
+
+    async function listFiles() {
+      const container = document.getElementById('library');
+      container.innerHTML = '';
+
+      for (const key in folders) {
+        const title = folders[key];
+        const section = document.createElement('section');
+        const heading = document.createElement('h2');
+        heading.textContent = title;
+        section.appendChild(heading);
+
+        const pathRef = ref(storage, 'submissions');
+        const userFolders = await listAll(pathRef);
+
+        const fileList = document.createElement('ul');
+
+        for (const userFolder of userFolders.prefixes) {
+          const userFiles = await listAll(userFolder);
+          for (const itemRef of userFiles.items) {
+            if (itemRef.name.startsWith(key)) {
+              const url = await getDownloadURL(itemRef);
+              const li = document.createElement('li');
+              const link = document.createElement('a');
+              link.href = url;
+              link.textContent = itemRef.name.split('-').slice(1).join('-');
+              link.target = '_blank';
+              li.appendChild(link);
+              fileList.appendChild(li);
+            }
+          }
+        }
+
+        if (fileList.children.length > 0) {
+          section.appendChild(fileList);
+          container.appendChild(section);
+        }
+      }
+    }
+
+    listFiles();
+  </script>
+  <style>
+    body {
+      font-family: sans-serif;
+      padding: 20px;
+      max-width: 900px;
+      margin: auto;
+    }
+    h1 {
+      text-align: center;
+    }
+    section {
+      margin-bottom: 30px;
+    }
+    h2 {
+      background: #f2f2f2;
+      padding: 10px;
+      border-left: 5px solid #999;
+    }
+    ul {
+      list-style: none;
+      padding-left: 20px;
+    }
+    li {
+      margin: 5px 0;
+    }
+  </style>
+</head>
+<body>
+  <h1>Shared Q&A File Repository</h1>
+  <div id="library">Loading files...</div>
+</body>
+</html>
