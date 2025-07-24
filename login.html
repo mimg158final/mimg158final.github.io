@@ -9,24 +9,13 @@
       const email = document.getElementById("email").value.trim();
       const password = document.getElementById("password").value.trim();
 
-      try {
-        const res = await fetch("https://firebasestorage.googleapis.com/v0/b/mimg158final.appspot.com/o?prefix=credentials%2F");
-        const data = await res.json();
-        const files = data.items || [];
-
-        for (const file of files) {
-          const url = \`https://firebasestorage.googleapis.com/v0/b/mimg158final.appspot.com/o/\${encodeURIComponent(file.name)}?alt=media\`;
-          const response = await fetch(url);
-          const cred = await response.json();
-          if (cred.email === email && cred.password === password) {
-            sessionStorage.setItem("loggedInUser", JSON.stringify(cred));
-            window.location.href = "library.html";
-            return;
-          }
-        }
+      const submissions = JSON.parse(localStorage.getItem("submissions") || "[]");
+      const user = submissions.find(s => s.email === email && s.password === password);
+      if (user) {
+        localStorage.setItem("loggedInUser", JSON.stringify(user));
+        window.location.href = "library.html";
+      } else {
         document.getElementById("error").textContent = "Invalid email or password.";
-      } catch (e) {
-        document.getElementById("error").textContent = "Login failed. Try again.";
       }
     }
   </script>
