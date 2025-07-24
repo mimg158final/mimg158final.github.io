@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Q&A Submission Portal</title>
+  <script>
+    function handleSubmit(event) {
+      event.preventDefault();
+
+      const form = event.target;
+      const email = form.email.value.trim();
+      const files = form.querySelectorAll('input[type="file"]');
+
+      // Check all fields are filled
+      if (!email) {
+        alert("Email is required.");
+        return;
+      }
+
+      for (const fileInput of files) {
+        if (fileInput.files.length === 0) {
+          alert("Please upload all required files before submitting.");
+          return;
+        }
+      }
+
+      // Simulate upload logic here (you could integrate with Firebase, Supabase, etc.)
+      alert("Thank you for your submission! You can now access the Q&A document.");
+      window.location.href = "https://docs.google.com/document/d/SHARED_DOC_ID/view"; // replace with actual doc link
+    }
+  </script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 700px;
+      margin: auto;
+      padding: 20px;
+    }
+    h2 {
+      border-bottom: 1px solid #ccc;
+      padding-bottom: 5px;
+    }
+    label {
+      display: block;
+      margin: 10px 0 5px;
+    }
+    input[type="file"] {
+      margin-bottom: 15px;
+    }
+    button {
+      padding: 10px 20px;
+      font-size: 16px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Submit Questions and Answers</h1>
+  <form onsubmit="handleSubmit(event)">
+    <label>Email (required):</label>
+    <input type="email" name="email" required />
+
+    <h2>7/17 Lecture</h2>
+    <label>Two Questions and Two Answers:</label>
+    <input type="file" name="lecture_717" required />
+
+    <h2>7/22 Welch, 2016 Paper</h2>
+    <label>Two Questions and Two Answers:</label>
+    <input type="file" name="welch_722" required />
+
+    <h2>7/17 Keim, 2008 Paper</h2>
+    <label>Two Questions and Two Answers:</label>
+    <input type="file" name="keim_2008" required />
+
+    <h2>7/17 Keim, 2000 Paper</h2>
+    <label>Two Questions and Two Answers:</label>
+    <input type="file" name="keim_2000" required />
+
+    <h2>7/22 Lecture</h2>
+    <label>Two Questions and Two Answers:</label>
+    <input type="file" name="lecture_722" required />
+
+    <h2>7/24 Wolfe, 2014 Paper</h2>
+    <label>Two Questions and Two Answers:</label>
+    <input type="file" name="wolfe_724" required />
+
+    <h2>7/24 Lecture</h2>
+    <label>Two Questions and Two Answers:</label>
+    <input type="file" name="lecture_724" required />
+
+    <button type="submit">Submit & Get Access</button>
+  </form>
+</body>
+</html>
