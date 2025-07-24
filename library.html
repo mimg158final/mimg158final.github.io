@@ -63,10 +63,14 @@
       "7/24 Lecture"
     ];
 
-    const user = JSON.parse(localStorage.getItem("loggedInUser"));
-    if (!user || !user.email || !user.password) {
-      window.location.href = "login.html";
-    }
+    fetch("https://ucarecdn.com/d20eea23-91a0-4875-9fff-b7488dac38bb/credentials.json")
+      .then(res => res.json())
+      .then(data => {
+        const logged = JSON.parse(localStorage.getItem("loggedInUser"));
+        const valid = data.find(entry => entry.email === logged?.email && entry.password === logged?.password);
+        if (!valid) window.location.href = "login.html";
+      })
+      .catch(() => window.location.href = "login.html");
 
     function getSubmissions() {
       return JSON.parse(localStorage.getItem("submissions") || "[]");
@@ -74,7 +78,7 @@
 
     function obfuscateEmail(email) {
       const [name, domain] = email.split("@");
-      return name.slice(0, 3) + "...@" + domain;
+      return name.slice(0, 4) + "...@" + domain;
     }
 
     function getFileNameFromUrl(url) {
@@ -137,3 +141,4 @@
   </script>
 </body>
 </html>
+
