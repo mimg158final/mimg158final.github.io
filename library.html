@@ -2,138 +2,76 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Shared File Library</title>
-  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
-  <meta http-equiv="Pragma" content="no-cache" />
-  <meta http-equiv="Expires" content="0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Library</title>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+    import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyBwASsafY-yc1g9m8o7786UXxKzzduUY1Y",
+      authDomain: "mimg158final.firebaseapp.com",
+      projectId: "mimg158final"
+    };
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db   = getFirestore(app);
+
+    window.addEventListener("DOMContentLoaded", () => {
+      onAuthStateChanged(auth, async user => {
+        if (!user) {
+          alert("Please sign in first.");
+          return window.location.href = "index.html";
+        }
+        const email = user.email;
+        document.getElementById("userEmail").textContent = email;
+
+        const assignments = [
+          "7-17_lecture",
+          "7-17_keim_2000",
+          "7-17_keim_2008",
+          "7-22_lecture",
+          "7-22_welch_2016",
+          "7-24_lecture",
+          "7-24_wolfe_2014"
+        ];
+
+        for (let key of assignments) {
+          const d = await getDoc(doc(db, "submissions", key));
+          const data = d.exists() ? d.data() : {};
+          const section = document.createElement("section");
+          section.innerHTML = `<h2>${key.replaceAll("_"," ").toUpperCase()}</h2>`;
+          if (data[email]) {
+            const ul = document.createElement("ul");
+            for (let [other, url] of Object.entries(data)) {
+              if (other !== email) {
+                const li = document.createElement("li");
+                li.innerHTML = `<strong>${other}</strong>: <a href="${url}" target="_blank">view</a>`;
+                ul.append(li);
+              }
+            }
+            section.append(ul);
+          } else {
+            section.innerHTML += `<p><em>You haven’t submitted this one → no access.</em></p>`;
+          }
+          document.body.append(section);
+        }
+      });
+    });
+  </script>
+
   <style>
-    body { font-family: Arial, sans-serif; max-width: 800px; margin: auto; padding: 20px; position: relative; }
-    h1 { text-align: center; }
-    h2 { margin-top: 30px; border-bottom: 1px solid #ccc; padding-bottom: 5px; }
-    ul { list-style: none; padding-left: 0; }
-    li { margin-bottom: 10px; }
-    a { text-decoration: none; color: blue; }
-    .login-btn {
-      position: absolute;
-      top: 20px;
-      right: 20px;
-      background: #007bff;
-      color: white;
-      padding: 8px 14px;
-      border: none;
-      border-radius: 6px;
-      font-size: 14px;
-      cursor: pointer;
-      text-decoration: none;
-    }
-    .login-btn:hover {
-      background: #0056b3;
-    }
-    #refresh {
-      display: block;
-      margin: 20px auto;
-      padding: 10px 20px;
-      background: #28a745;
-      color: white;
-      border: none;
-      font-size: 16px;
-      border-radius: 6px;
-      cursor: pointer;
-    }
-    #refresh:hover {
-      background: #1e7e34;
-    }
+    body { font-family:sans-serif; padding:2rem; max-width:800px; margin:auto; background:#f4f4f4 }
+    h1{text-align:center}
+    section { background:#fff; padding:1rem; margin:1rem 0; border-radius:6px; box-shadow:0 1px 4px rgba(0,0,0,.1) }
+    ul{list-style:none;padding:0}
+    li{margin:.5rem 0}
   </style>
 </head>
 <body>
-  <a class="login-btn" href="login.html">Login</a>
-  <h1>All Uploaded Q&A Files</h1>
-  <button id="refresh" onclick="renderFileList()">Refresh File List</button>
-  <div id="file-list"></div>
-
-  <script>
-    const folderNames = [
-      "7/17 Lecture",
-      "7/22 Welch, 2016 Paper",
-      "7/17 Keim, 2008 Paper",
-      "7/17 Keim, 2000 Paper",
-      "7/22 Lecture",
-      "7/24 Wolfe, 2014 Paper",
-      "7/24 Lecture"
-    ];
-
-    const user = JSON.parse(localStorage.getItem("loggedInUser"));
-    if (!user || !user.email || !user.password) {
-      window.location.href = "login.html";
-    }
-
-    function getSubmissions() {
-      return JSON.parse(localStorage.getItem("submissions") || "[]");
-    }
-
-    function obfuscateEmail(email) {
-      const [name, domain] = email.split("@");
-      return name.slice(0, 4) + "...@" + domain;
-    }
-
-    function getFileNameFromUrl(url) {
-      try {
-        const parts = decodeURIComponent(url).split("/");
-        return parts[parts.length - 1].split("?")[0];
-      } catch {
-        return "Download";
-      }
-    }
-
-    async function validateURL(url) {
-      try {
-        const response = await fetch(url, { method: 'HEAD' });
-        return response.ok;
-      } catch {
-        return false;
-      }
-    }
-
-    async function renderFileList() {
-      const container = document.getElementById("file-list");
-      container.innerHTML = "";
-      const submissions = getSubmissions();
-      const sectionFiles = Array(folderNames.length).fill(null).map(() => []);
-
-      for (const user of submissions) {
-        for (let i = 0; i < user.uploads.length; i++) {
-          const url = user.uploads[i];
-          const exists = await validateURL(url);
-          if (exists) {
-            sectionFiles[i].push({ email: user.email, url });
-          }
-        }
-      }
-
-      folderNames.forEach((title, idx) => {
-        const section = document.createElement("section");
-        const heading = document.createElement("h2");
-        heading.textContent = title;
-        section.appendChild(heading);
-
-        const ul = document.createElement("ul");
-        sectionFiles[idx].forEach(entry => {
-          const li = document.createElement("li");
-          const link = document.createElement("a");
-          link.href = entry.url;
-          link.textContent = `${getFileNameFromUrl(entry.url)} (${obfuscateEmail(entry.email)})`;
-          link.target = "_blank";
-          li.appendChild(link);
-          ul.appendChild(li);
-        });
-
-        section.appendChild(ul);
-        container.appendChild(section);
-      });
-    }
-
-    renderFileList();
-  </script>
+  <h1>Library</h1>
+  <p>Signed in as <strong id="userEmail"></strong></p>
 </body>
 </html>
