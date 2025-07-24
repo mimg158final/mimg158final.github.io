@@ -1,40 +1,72 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Login</title>
-  <script>
-    async function login() {
-      const email = document.getElementById("email").value.trim();
-      const password = document.getElementById("password").value.trim();
-
-      const submissions = JSON.parse(localStorage.getItem("submissions") || "[]");
-      const user = submissions.find(s => s.email === email && s.password === password);
-      if (user) {
-        localStorage.setItem("loggedInUser", JSON.stringify(user));
-        window.location.href = "library.html";
-      } else {
-        document.getElementById("error").textContent = "Invalid email or password.";
-      }
-    }
-  </script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Login Viewer</title>
   <style>
-    body { font-family: Arial; display: flex; height: 100vh; justify-content: center; align-items: center; background: #f0f0f0; }
-    .login-box { background: white; padding: 30px; border-radius: 10px; box-shadow: 0 0 10px rgba(0,0,0,0.1); width: 300px; }
-    input { width: 100%; padding: 10px; margin-top: 10px; font-size: 16px; }
-    button { margin-top: 20px; padding: 10px; width: 100%; background: #007bff; color: white; font-size: 16px; border: none; border-radius: 5px; }
-    button:hover { background: #0056b3; }
-    #error { color: red; margin-top: 10px; text-align: center; }
+    body {
+      font-family: sans-serif;
+      background-color: #f7f7f7;
+      padding: 2rem;
+      max-width: 600px;
+      margin: auto;
+    }
+    h1 {
+      text-align: center;
+    }
+    button {
+      display: block;
+      margin: 1rem auto;
+      padding: 0.8rem 1.5rem;
+      background-color: #007bff;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #0056b3;
+    }
+    #output {
+      margin-top: 2rem;
+      background: white;
+      padding: 1rem;
+      border-radius: 6px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    }
+    .user {
+      padding: 0.5rem 0;
+      border-bottom: 1px solid #eee;
+    }
   </style>
 </head>
 <body>
-  <div class="login-box">
-    <h2>Login</h2>
-    <input id="email" type="email" placeholder="Email" />
-    <input id="password" type="password" placeholder="Password" />
-    <button onclick="login()">Login</button>
-    <div id="error"></div>
-  </div>
+  <h1>View All Users</h1>
+  <button onclick="loadUsers()">Load Users</button>
+  <div id="output"></div>
+
+  <script>
+    async function loadUsers() {
+      const url = "https://ucarecdn.com/6a09f5d3-8753-446f-a029-b1199d5b7143/pass.json";
+      const output = document.getElementById("output");
+      output.innerHTML = "Loading...";
+
+      try {
+        const res = await fetch(url);
+        const users = await res.json();
+
+        output.innerHTML = users.map(user => `
+          <div class="user">
+            <strong>Email:</strong> ${user.email}<br>
+            <strong>Password:</strong> ${user.password}
+          </div>
+        `).join("");
+      } catch (err) {
+        output.innerHTML = `<p style="color:red;">Failed to load users.</p>`;
+        console.error(err);
+      }
+    }
+  </script>
 </body>
 </html>
