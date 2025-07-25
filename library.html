@@ -15,19 +15,19 @@
     body { font-family: sans-serif; background: #f4f4f4; margin: 0; padding: 2rem; max-width: 800px; }
     h1 { text-align: center; }
     p.user { font-size: 0.9rem; color: #333; }
-    section { background: #fff; padding: 1rem; margin: 1rem 0; border-radius: 6px; box-shadow: 0 1px 4px rgba(0,0,0,0.1); position: relative; }
+    section { background: #fff; padding: 1rem; margin: 1rem 0; border-radius: 6px; box-shadow: 0 1px 4px rgba(0,0,0,0.1); }
     h2 { margin-top: 0; }
     .btn { padding: 0.4rem 0.8rem; margin: 0.3rem; border: none; border-radius: 4px; cursor: pointer; }
     .upload-btn { background: #4CAF50; color: #fff; }
-    .replace-btn { background: #FFA726; color: #fff; }
-    .delete-btn { background: #F44336; color: #fff; }
-    .edit-btn { background: #2196F3; color: #fff; display: none; position: absolute; right: 1rem; top: 1rem; font-size: 0.8rem; }
-    .small-btn { padding: 0.3rem 0.6rem; font-size: 0.8rem; }
+    .edit-btn { background: #2196F3; color: #fff; font-size: 0.8rem; display: none; }
+    .replace-btn { background: #FFA726; color: #fff; font-size: 0.8rem; }
+    .delete-btn { background: #F44336; color: #fff; font-size: 0.8rem; }
+    .small-btn { padding: 0.3rem 0.6rem; margin-right: 0.3rem; }
     .options-container { display: none; margin-top: 0.5rem; }
-    .btn:hover { opacity: 0.9; }
-    code.hash { font-family: monospace; background: #eef; padding: 0.2rem 0.4rem; border-radius: 4px; }
     .your-file-container { position: relative; display: inline-block; }
     .your-file-container:hover .edit-btn { display: inline-block; }
+    .btn:hover { opacity: 0.9; }
+    code.hash { font-family: monospace; background: #eef; padding: 0.2rem 0.4rem; border-radius: 4px; }
   </style>
 </head>
 <body>
@@ -38,14 +38,7 @@
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
     import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-    import {
-      getFirestore,
-      doc,
-      getDoc,
-      setDoc,
-      updateDoc,
-      deleteField
-    } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+    import { getFirestore, doc, getDoc, setDoc, updateDoc, deleteField } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
     // Firebase config
     const firebaseConfig = {
@@ -69,13 +62,15 @@
 
     async function hashEmail(email) {
       const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(email));
-      return Array.from(new Uint8Array(buf))
-        .map(b => b.toString(16).padStart(2,'0')).join('').slice(0,8);
+      return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('').slice(0,8);
     }
 
     window.addEventListener('DOMContentLoaded', () => {
       onAuthStateChanged(auth, async user => {
-        if (!user) return window.location.href = 'index.html';
+        if (!user) {
+          window.location.href = 'index.html';
+          return;
+        }
         const email = user.email;
         document.getElementById('userEmail').textContent = email;
         const userHash = await hashEmail(email);
@@ -84,14 +79,11 @@
         const output = document.getElementById('output');
         output.innerHTML = '';
 
-        // Click outside handler to close options
+        // Close options when clicking outside
         document.addEventListener('click', e => {
-          const openOptions = document.querySelectorAll('.options-container[style*="block"]');
-          openOptions.forEach(div => {
-            const editBtn = div.previousSibling; // assumes editBtn appended right before
-            if (!editBtn.contains(e.target) && !div.contains(e.target)) {
-              div.style.display = 'none';
-            }
+          document.querySelectorAll('.options-container').forEach(div => {
+            const container = div.parentElement;
+            if (!container.contains(e.target)) div.style.display = 'none';
           });
         });
 
@@ -103,7 +95,7 @@
           const section = document.createElement('section');
           section.innerHTML = `<h2>${key.replaceAll('_',' ').toUpperCase()}</h2>`;
 
-          // If user hasn't submitted, show only upload
+          // Show upload if no submission
           if (!data[userHash]) {
             section.innerHTML += `<p><em>You haven’t submitted → upload to gain access</em></p>`;
             const uploadBtn = document.createElement('button');
@@ -121,21 +113,22 @@
             continue;
           }
 
-          // User has submitted: show own file and Edit toggle
+          // User submitted: your file + edit
           const entry = data[userHash];
           const yourFileDiv = document.createElement('div');
           yourFileDiv.className = 'your-file-container';
-          yourFileDiv.innerHTML = `<p><strong>Your file:</strong> 
-            <a href="${entry.url}" target="_blank">${entry.name}</a></p>`;
+          yourFileDiv.innerHTML = `<p><strong>Your file:</strong> <a href=\"${entry.url}\" target=\"_blank\">${entry.name}</a></p>`;
 
+          // Edit button
           const editBtn = document.createElement('button');
           editBtn.textContent = 'Edit';
           editBtn.className = 'btn edit-btn small-btn';
 
+          // Options container
           const optionsDiv = document.createElement('div');
-          optionsDiv.className = 'options-container'>;
+          optionsDiv.className = 'options-container';
 
-          // Replace option with soft confirm
+          // Replace option
           const replaceBtn = document.createElement('button');
           replaceBtn.textContent = 'Replace';
           replaceBtn.className = 'btn replace-btn small-btn';
@@ -147,44 +140,44 @@
               setTimeout(() => { repConfirm = false; replaceBtn.textContent = 'Replace'; }, 10000);
               return;
             }
-            const dialog = uploadcare.openDialog(null,{multiple:false});
-            dialog.done(f=>f.promise().done(async info=>{
-              await setDoc(ref, {[userHash]:{url:info.cdnUrl,name:info.name}},{merge:true});
+            const dialog = uploadcare.openDialog(null, { multiple: false });
+            dialog.done(file => file.promise().done(async info => {
+              await setDoc(ref, { [userHash]: { url: info.cdnUrl, name: info.name } }, { merge: true });
               window.location.reload();
             }));
           };
 
-          // Delete option with soft confirm
+          // Delete option
           const deleteBtn = document.createElement('button');
           deleteBtn.textContent = 'Delete';
           deleteBtn.className = 'btn delete-btn small-btn';
           let delConfirm = false;
-          deleteBtn.onclick = async ()=>{
+          deleteBtn.onclick = async () => {
             if (!delConfirm) {
               delConfirm = true;
               deleteBtn.textContent = 'Confirm Delete';
-              setTimeout(()=>{ delConfirm=false; deleteBtn.textContent='Delete'; },10000);
+              setTimeout(() => { delConfirm = false; deleteBtn.textContent = 'Delete'; }, 10000);
               return;
             }
-            await updateDoc(ref,{[userHash]:deleteField()});
+            await updateDoc(ref, { [userHash]: deleteField() });
             window.location.reload();
           };
 
           optionsDiv.append(replaceBtn, deleteBtn);
           editBtn.onclick = () => {
-            optionsDiv.style.display = optionsDiv.style.display==='block'?'none':'block';
+            optionsDiv.style.display = optionsDiv.style.display === 'block' ? 'none' : 'block';
           };
 
           yourFileDiv.append(editBtn, optionsDiv);
           section.append(yourFileDiv);
 
-          // List other submissions
+          // List others
           const ul = document.createElement('ul');
           for (const [h,val] of Object.entries(data)) {
-            if (h===userHash||!val.url) continue;
+            if (h === userHash || !val.url) continue;
             const li = document.createElement('li');
-            li.innerHTML = `<strong><code class="hash">${h}</code>:</strong> 
-              <a href="${val.url}" target="_blank">${val.name}</a>`;
+            li.innerHTML = `<strong><code class=\"hash\">${h}</code>:</strong> ` +
+                           `<a href=\"${val.url}\" target=\"_blank\">${val.name}</a>`;
             ul.append(li);
           }
           if (ul.children.length) section.append(ul);
