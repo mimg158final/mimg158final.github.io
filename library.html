@@ -28,9 +28,10 @@
       text-align: center;
       margin-bottom: 2rem;
     }
+    /* Use flex layout instead of grid to maximize space */
     #output {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      display: flex;
+      flex-wrap: wrap;
       gap: 1rem;
     }
     section {
@@ -41,6 +42,7 @@
       position: relative;
       display: flex;
       flex-direction: column;
+      flex: 1 1 300px; /* grow/shrink, base width */
     }
     h2 {
       margin-top: 0;
@@ -152,7 +154,6 @@
         const output = document.getElementById('output');
         output.innerHTML = '';
 
-        // Close options when clicking outside
         document.addEventListener('click', e => {
           document.querySelectorAll('.options-container').forEach(div => {
             const container = div.parentElement;
@@ -185,26 +186,22 @@
             continue;
           }
 
-          const viewedKey = `viewed_${key}`;
-          // Hide edit if user has cemented access
-          const hasCemented = localStorage.getItem(viewedKey) === 'true';
-
           const entry = data[userHash];
           const yourFileDiv = document.createElement('div');
           yourFileDiv.className = 'your-file-container';
           yourFileDiv.innerHTML = `<p><strong>Your file:</strong> <a href="${entry.url}" target="_blank">${entry.name}</a></p>`;
 
-          // Edit button
+          const viewedKey = `viewed_${key}`;
+          let hasCemented = localStorage.getItem(viewedKey) === 'true';
+
           const editBtn = document.createElement('button');
           editBtn.textContent = '✏️';
           editBtn.className = 'btn edit-btn';
-          if (!hasCemented) editBtn.style.display = 'none';
+          if (!hasCemented) editBtn.style.opacity = 0;
 
-          // Options container
           const optionsDiv = document.createElement('div');
           optionsDiv.className = 'options-container';
 
-          // Replace option
           const replaceBtn = document.createElement('button');
           replaceBtn.textContent = 'Replace';
           replaceBtn.className = 'btn replace-btn small-btn';
@@ -223,7 +220,6 @@
             }));
           };
 
-          // Delete option
           const deleteBtn = document.createElement('button');
           deleteBtn.textContent = 'Delete';
           deleteBtn.className = 'btn delete-btn small-btn';
@@ -247,27 +243,25 @@
           yourFileDiv.append(editBtn, optionsDiv);
           section.append(yourFileDiv);
 
-          // List others
           const ul = document.createElement('ul');
           for (const [h,val] of Object.entries(data)) {
             if (h === userHash || !val.url) continue;
             const li = document.createElement('li');
             li.innerHTML = `<strong><code class=\"hash\">${h}</code>:</strong> ` +
                            `<a href=\"${val.url}\" target=\"_blank\">${val.name}</a>`;
-            // Cement access on click
             li.querySelector('a').onclick = () => {
               localStorage.setItem(viewedKey, 'true');
+              hasCemented = true;
               editBtn.style.display = 'none';
             };
             ul.append(li);
           }
           if (ul.children.length) section.append(ul);
 
-          // Show edit by default until cemented
-          if (!hasCemented) {
-            // On hover before cementing, show edit
-            yourFileDiv.addEventListener('mouseenter', () => editBtn.style.display = 'inline-block');
-            yourFileDiv.addEventListener('mouseleave', () => editBtn.style.display = 'none');
+          // Show edit icon only if cemented
+          if (hasCemented) {
+            yourFileDiv.addEventListener('mouseenter', () => editBtn.style.opacity = 1);
+            yourFileDiv.addEventListener('mouseleave', () => editBtn.style.opacity = 0);
           }
 
           output.append(section);
