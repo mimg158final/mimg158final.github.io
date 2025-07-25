@@ -140,7 +140,7 @@
             }
             // Vote buttons
             const upBtn = document.createElement('button');
-            upBtn.textContent = `👍 ${counts[e.hash].up}`;
+            upBtn.textContent = `↑ ${counts[e.hash].up}`;
             upBtn.className   = 'btn vote-btn' + (userVotes[e.hash]==='up'?' voted':'');
             upBtn.onclick = async ()=>{
               const userMap = votesByUser[userHash]||{};
@@ -150,7 +150,7 @@
               window.location.reload();
             };
             const downBtn = document.createElement('button');
-            downBtn.textContent = `👎 ${counts[e.hash].down}`;
+            downBtn.textContent = `↓ ${counts[e.hash].down}`;
             downBtn.className   = 'btn vote-btn' + (userVotes[e.hash]==='down'?' voted':'');
             downBtn.onclick = async ()=>{
               const userMap = votesByUser[userHash]||{};
