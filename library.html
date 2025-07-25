@@ -19,11 +19,11 @@
     h2 { margin-top: 0; }
     ul { list-style: none; padding: 0; }
     li { margin: 0.5rem 0; }
-    button.upload-btn, button.replace-btn { padding: 0.6rem 1rem; margin-top: 0.5rem; border: none; border-radius: 4px; color: white; cursor: pointer; }
-    button.upload-btn { background: #4CAF50; }
-    button.upload-btn:hover { background: #45a049; }
-    button.replace-btn { background: #FFA726; }
-    button.replace-btn:hover { background: #FB8C00; }
+    button.upload-btn, button.replace-btn, button.vote-btn { padding: 0.4rem 0.8rem; margin: 0 0.3rem; border: none; border-radius: 4px; cursor: pointer; }
+    button.upload-btn { background: #4CAF50; color: #fff; }
+    button.replace-btn { background: #FFA726; color: #fff; }
+    button.vote-btn { background: #2196F3; color: #fff; font-size: 0.9rem; }
+    button:hover { opacity: 0.9; }
     code.hash { font-family: monospace; background: #eef; padding: 0.2rem 0.4rem; border-radius: 4px; }
   </style>
 </head>
@@ -35,14 +35,14 @@
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
     import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-    import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+    import { getFirestore, doc, getDoc, setDoc, updateDoc, increment } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyBwASsafY-yc1g9m8o7786UXxKzzduUY1Y",
       authDomain: "mimg158final.firebaseapp.com",
       projectId: "mimg158final"
     };
-    const app  = initializeApp(firebaseConfig);
+    const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
     const db   = getFirestore(app);
 
@@ -63,7 +63,10 @@
 
     window.addEventListener('DOMContentLoaded', () => {
       onAuthStateChanged(auth, async user => {
-        if (!user) return window.location.href = 'index.html';
+        if (!user) {
+          window.location.href = 'index.html';
+          return;
+        }
         const email = user.email;
         document.getElementById('userEmail').textContent = email;
         const userHash = await hashEmail(email);
@@ -73,43 +76,55 @@
         output.innerHTML = '';
 
         for (const key of assignments) {
-          const snap = await getDoc(doc(db, 'submissions', key));
+          const submissionsRef = doc(db, 'submissions', key);
+          const snap = await getDoc(submissionsRef);
           const data = snap.exists() ? snap.data() : {};
-          const entry = data[userHash];
 
           const section = document.createElement('section');
           section.innerHTML = `<h2>${key.replaceAll('_',' ').toUpperCase()}</h2>`;
 
+          const entry = data[userHash];
           if (entry) {
-            // Show user's file and replace option
-            const url = entry.url;
-            const name = entry.name;
-            section.innerHTML += `
-              <p><strong>Your file:</strong> <a href="${url}" target="_blank">${name}</a></p>
-            `;
+            // Show user's file + replace
+            section.innerHTML += `<p><strong>Your file:</strong> <a href="${entry.url}" target="_blank">${entry.name}</a></p>`;
             const replaceBtn = document.createElement('button');
             replaceBtn.textContent = 'Replace File';
             replaceBtn.className = 'replace-btn';
             replaceBtn.onclick = () => {
               const dialog = uploadcare.openDialog(null, { multiple: false });
               dialog.done(file => file.promise().done(async info => {
-                await setDoc(doc(db,'submissions',key), { [userHash]: { url: info.cdnUrl, name: info.name } }, { merge: true });
+                await setDoc(submissionsRef, { [userHash]: { url: info.cdnUrl, name: info.name, votes: entry.votes || { up: 0, down: 0 } } }, { merge: true });
                 window.location.reload();
               }));
             };
             section.append(replaceBtn);
 
-            // List others
-            const ul = document.createElement('ul');
-            for (const [h, val] of Object.entries(data)) {
-              if (h === userHash || !val || !val.url) continue;
-              const li = document.createElement('li');
-              li.innerHTML = `<strong><code class="hash">${h}</code>:</strong> <a href="${val.url}" target="_blank">${val.name}</a>`;
-              ul.append(li);
+            // Prepare list of other submissions with vote counts
+            const others = Object.entries(data)
+              .filter(([h,val]) => val && val.url && h !== userHash)
+              .map(([h,val]) => ({ hash: h, url: val.url, name: val.name, votes: val.votes || { up:0, down:0 } }))
+              .sort((a,b) => (b.votes.up - b.votes.down) - (a.votes.up - a.votes.down));
+
+            if (others.length) {
+              const ul = document.createElement('ul');
+              for (const o of others) {
+                const li = document.createElement('li');
+                li.innerHTML = `
+                  <strong><code class="hash">${o.hash}</code>:</strong>
+                  <a href="${o.url}" target="_blank">${o.name}</a>
+                  <button class="vote-btn" data-key="${key}" data-hash="${o.hash}" data-type="up">
+                    👍 ${o.votes.up}
+                  </button>
+                  <button class="vote-btn" data-key="${key}" data-hash="${o.hash}" data-type="down">
+                    👎 ${o.votes.down}
+                  </button>
+                `;
+                ul.append(li);
+              }
+              section.append(ul);
             }
-            if (ul.children.length) section.append(ul);
           } else {
-            // Upload option
+            // Upload option if not submitted
             section.innerHTML += `<p><em>You haven’t submitted → upload to gain access</em></p>`;
             const uploadBtn = document.createElement('button');
             uploadBtn.textContent = 'Choose & Upload File';
@@ -117,7 +132,7 @@
             uploadBtn.onclick = () => {
               const dialog = uploadcare.openDialog(null, { multiple: false });
               dialog.done(file => file.promise().done(async info => {
-                await setDoc(doc(db,'submissions',key), { [userHash]: { url: info.cdnUrl, name: info.name } }, { merge: true });
+                await setDoc(submissionsRef, { [userHash]: { url: info.cdnUrl, name: info.name, votes: { up:0, down:0 } } }, { merge: true });
                 window.location.reload();
               }));
             };
@@ -126,6 +141,18 @@
 
           output.append(section);
         }
+
+        // Attach vote button handlers
+        document.querySelectorAll('button.vote-btn').forEach(btn => {
+          btn.onclick = async () => {
+            const key = btn.getAttribute('data-key');
+            const h   = btn.getAttribute('data-hash');
+            const type= btn.getAttribute('data-type');
+            const field = `${h}.votes.${type}`;
+            await updateDoc(doc(db, 'submissions', key), { [field]: increment(1) });
+            window.location.reload();
+          };
+        });
       });
     });
   </script>
