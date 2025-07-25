@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Library</title>
 
-  <!-- Uploadcare -->
+  <!-- Uploadcare widget -->
   <script>
     UPLOADCARE_PUBLIC_KEY = "80954b866f0b203d4c24";
   </script>
@@ -65,21 +65,22 @@
         output.innerHTML = '';
 
         for (const key of assignments) {
+          // fetch this assignment's submissions
           const snap = await getDoc(doc(db, "submissions", key));
           const data = snap.exists() ? snap.data() : {};
 
-          const sec = document.createElement("section");
-          sec.innerHTML = `<h2>${key.replaceAll("_"," ").toUpperCase()}</h2>`;
+          // section for this assignment
+          const section = document.createElement("section");
+          section.innerHTML = `<h2>${key.replaceAll("_"," ").toUpperCase()}</h2>`;
 
-          // Show user's own file if exists
           if (data[email]) {
-            const p = document.createElement("p");
-            p.innerHTML = `<strong>Your file:</strong> <a href="${data[email]}" target="_blank">view</a>`;
-            sec.append(p);
-          }
-
-          // If user submitted, list others
-          if (data[email]) {
+            // user has submitted → show their file
+            section.innerHTML += `
+              <p><strong>Your file:</strong>
+                <a href="${data[email]}" target="_blank">view</a>
+              </p>
+            `;
+            // show others' submissions
             const ul = document.createElement("ul");
             for (const [other, url] of Object.entries(data)) {
               if (other !== email) {
@@ -88,12 +89,10 @@
                 ul.append(li);
               }
             }
-            if (ul.children.length) sec.append(ul);
+            if (ul.children.length) section.append(ul);
           } else {
-            // No submission: provide upload button
-            const info = document.createElement("p");
-            info.innerHTML = `<em>You haven’t submitted this one — upload to gain access:</em>`;
-            sec.append(info);
+            // user hasn't submitted → show uploader
+            section.innerHTML += `<p><em>You haven’t submitted → upload to gain access</em></p>`;
 
             const btn = document.createElement("button");
             btn.textContent = "Choose & Upload File";
@@ -104,7 +103,11 @@
                 filePromise.done(async fileInfo => {
                   const url = fileInfo.cdnUrl;
                   try {
-                    await setDoc(doc(db, "submissions", key), { [email]: url }, { merge: true });
+                    await setDoc(
+                      doc(db, "submissions", key),
+                      { [email]: url },
+                      { merge: true }
+                    );
                     window.location.reload();
                   } catch (err) {
                     console.error(err);
@@ -113,10 +116,10 @@
                 });
               });
             };
-            sec.append(btn);
+            section.append(btn);
           }
 
-          output.append(sec);
+          output.append(section);
         }
       });
     });
