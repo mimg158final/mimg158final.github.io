@@ -8,7 +8,7 @@
   <!-- Uploadcare widget -->
   <script>
     UPLOADCARE_PUBLIC_KEY = "80954b866f0b203d4c24";
-  <//script>
+  </script>
   <script src="https://ucarecdn.com/libs/widget/3.x/uploadcare.full.min.js"></script>
 
   <style>
@@ -87,7 +87,7 @@
           const section = document.createElement('section');
           section.innerHTML = `<h2>${key.replaceAll('_',' ').toUpperCase()}</h2>`;
 
-          // Not submitted: show only upload
+          // If user hasn't submitted, show only upload
           if (!data[userHash]) {
             section.innerHTML += `<p><em>You haven’t submitted → upload to gain access</em></p>`;
             const uploadBtn = document.createElement('button');
@@ -96,9 +96,7 @@
             uploadBtn.onclick = () => {
               const dialog = uploadcare.openDialog(null, { multiple: false });
               dialog.done(file => file.promise().done(async info => {
-                await setDoc(ref, {
-                  [userHash]: { url: info.cdnUrl, name: info.name }
-                }, { merge: true });
+                await setDoc(ref, { [userHash]: { url: info.cdnUrl, name: info.name } }, { merge: true });
                 window.location.reload();
               }));
             };
@@ -107,63 +105,39 @@
             continue;
           }
 
-          // User has submitted: show own file, replace, and delete with confirmation
+          // User has submitted: show own file, replace, delete
           const entry = data[userHash];
-          section.innerHTML += `<p><strong>Your file:</strong> 
-            <a href="${entry.url}" target="_blank">${entry.name}</a></p>`;
+          section.innerHTML += `<p><strong>Your file:</strong> <a href="${entry.url}" target="_blank">${entry.name}</a></p>`;
 
-          // Replace soft confirmation
+          // Replace button
           const replaceBtn = document.createElement('button');
           replaceBtn.textContent = 'Replace File';
           replaceBtn.className = 'btn replace-btn';
-          let replaceConfirm = false;
           replaceBtn.onclick = () => {
-            if (!replaceConfirm) {
-              replaceConfirm = true;
-              replaceBtn.textContent = 'Click again to confirm Replace';
-              setTimeout(() => {
-                replaceConfirm = false;
-                replaceBtn.textContent = 'Replace File';
-              }, 10000);
-              return;
-            }
             const dialog = uploadcare.openDialog(null, { multiple: false });
             dialog.done(file => file.promise().done(async info => {
-              await setDoc(ref, {
-                [userHash]: { url: info.cdnUrl, name: info.name }
-              }, { merge: true });
+              await setDoc(ref, { [userHash]: { url: info.cdnUrl, name: info.name } }, { merge: true });
               window.location.reload();
             }));
           };
-          section.append(replaceBtn);
 
-          // Delete soft confirmation
+          // Delete button
           const deleteBtn = document.createElement('button');
           deleteBtn.textContent = 'Delete File';
           deleteBtn.className = 'btn delete-btn';
-          let deleteConfirm = false;
           deleteBtn.onclick = async () => {
-            if (!deleteConfirm) {
-              deleteConfirm = true;
-              deleteBtn.textContent = 'Click again to confirm Delete';
-              setTimeout(() => {
-                deleteConfirm = false;
-                deleteBtn.textContent = 'Delete File';
-              }, 10000);
-              return;
-            }
             await updateDoc(ref, { [userHash]: deleteField() });
             window.location.reload();
           };
-          section.append(deleteBtn);
+
+          section.append(replaceBtn, deleteBtn);
 
           // List other users' submissions
           const ul = document.createElement('ul');
           for (const [h, val] of Object.entries(data)) {
             if (h === userHash || !val.url) continue;
             const li = document.createElement('li');
-            li.innerHTML = `<strong><code class="hash">${h}</code>:</strong> 
-              <a href="${val.url}" target="_blank">${val.name}</a>`;
+            li.innerHTML = `<strong><code class="hash">${h}</code>:</strong> <a href="${val.url}" target="_blank">${val.name}</a>`;
             ul.append(li);
           }
           if (ul.children.length) section.append(ul);
