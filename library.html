@@ -33,140 +33,125 @@
   <p class="user">Signed in as <strong id="userEmail"></strong> (<code id="userHash" class="hash"></code>)</p>
   <div id="output"></div>
 
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-    import { getFirestore, doc, getDoc, setDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+  import {
+    getFirestore,
+    doc,
+    getDoc,
+    setDoc
+  } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
-    const firebaseConfig = {
-      apiKey: "AIzaSyBwASsafY-yc1g9m8o7786UXxKzzduUY1Y",
-      authDomain: "mimg158final.firebaseapp.com",
-      projectId: "mimg158final"
-    };
-    const app = initializeApp(firebaseConfig);
-    const auth = getAuth(app);
-    const db   = getFirestore(app);
+  // Firebase config
+  const firebaseConfig = {
+    apiKey: "AIzaSyBwASsafY-yc1g9m8o7786UXxKzzduUY1Y",
+    authDomain: "mimg158final.firebaseapp.com",
+    projectId: "mimg158final"
+  };
+  const app  = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db   = getFirestore(app);
 
-    const assignments = [
-      "7-17_lecture",
-      "7-17_keim_2000",
-      "7-17_keim_2008",
-      "7-22_lecture",
-      "7-22_welch_2016",
-      "7-24_lecture",
-      "7-24_wolfe_2014"
-    ];
+  // Assignments
+  const assignments = [
+    "7-17_lecture",
+    "7-17_keim_2000",
+    "7-17_keim_2008",
+    "7-22_lecture",
+    "7-22_welch_2016",
+    "7-24_lecture",
+    "7-24_wolfe_2014"
+  ];
 
-    async function hashEmail(email) {
-      const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(email));
-      return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('').slice(0,8);
-    }
+  // SHA-256 → first 8 hex chars
+  async function hashEmail(email) {
+    const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(email));
+    return Array.from(new Uint8Array(buf))
+      .map(b => b.toString(16).padStart(2, "0"))
+      .join("")
+      .slice(0, 8);
+  }
 
-    window.addEventListener('DOMContentLoaded', () => {
-      onAuthStateChanged(auth, async user => {
-        if (!user) {
-          window.location.href = 'index.html';
-          return;
-        }
-        const email = user.email;
-        document.getElementById('userEmail').textContent = email;
-        const userHash = await hashEmail(email);
-        document.getElementById('userHash').textContent = userHash;
+  window.addEventListener("DOMContentLoaded", () => {
+    onAuthStateChanged(auth, async user => {
+      if (!user) return window.location.href = "index.html";
+      const email = user.email;
+      document.getElementById("userEmail").textContent = email;
+      const userHash = await hashEmail(email);
+      document.getElementById("userHash").textContent = userHash;
 
-        const output = document.getElementById('output');
-        output.innerHTML = '';
+      const output = document.getElementById("output");
+      output.innerHTML = "";
 
-        for (const key of assignments) {
-          const submissionsRef = doc(db, 'submissions', key);
-          const votesRef       = doc(db, 'votes', key);
-          const snap           = await getDoc(submissionsRef);
-          const votesSnap      = await getDoc(votesRef);
-          const data           = snap.exists() ? snap.data() : {};
-          const votesByUser    = votesSnap.exists() ? votesSnap.data().votesByUser || {} : {};
+      for (const key of assignments) {
+        const submissionsRef = doc(db, "submissions", key);
+        const snap = await getDoc(submissionsRef);
+        const data = snap.exists() ? snap.data() : {};
 
-          const section = document.createElement('section');
-          section.innerHTML = `<h2>${key.replaceAll('_',' ').toUpperCase()}</h2>`;
+        // Build section container
+        const section = document.createElement("section");
+        section.innerHTML = `<h2>${key.replaceAll("_", " ").toUpperCase()}</h2>`;
 
-          // Combine entries and compute tallies
-          const entries = Object.entries(data).map(([h,val])=>({hash:h,url:val.url,name:val.name}));
-          // votesByUser: {voterHash:{entryHash:'up'/'down'}}
-          // Compute counts
-          const counts = {};
-          entries.forEach(e=>counts[e.hash]={up:0,down:0});
-          Object.values(votesByUser).forEach(vu=>{
-            Object.entries(vu).forEach(([entryHash,vote])=>{
-              if (counts[entryHash]) counts[entryHash][vote]++;
-            });
-          });
-          // Get current user's vote map
-          const userVotes = votesByUser[userHash]||{};
-
-          // Sort entries by score descending
-          entries.sort((a,b)=> (counts[b.hash].up-counts[b.hash].down) - (counts[a.hash].up-counts[a.hash].down));
-
-          entries.forEach(e=>{
-            const isOwn = e.hash===userHash;
-            // Entry container
-            const div = document.createElement('div');
-            div.innerHTML = `<p><strong>${isOwn?'Your file':'<code class="hash">'+e.hash+'</code>'}:</strong> `+
-                            `<a href="${e.url}" target="_blank">${e.name}</a></p>`;
-            // Replace button for own
-            if(isOwn){
-              const replaceBtn = document.createElement('button');
-              replaceBtn.textContent = 'Replace File';
-              replaceBtn.className   = 'btn replace-btn';
-              replaceBtn.onclick = ()=>{
-                const dialog = uploadcare.openDialog(null,{multiple:false});
-                dialog.done(f=>f.promise().done(async info=>{
-                  await setDoc(submissionsRef,{[userHash]:{url:info.cdnUrl,name:info.name}}, {merge:true});
-                  window.location.reload();
-                }));
-              };
-              div.append(replaceBtn);
-            }
-            // Upload button if not own
-            if(!isOwn && !data[userHash]){
-              const uploadBtn = document.createElement('button');
-              uploadBtn.textContent = 'Upload to Gain Access';
-              uploadBtn.className   = 'btn upload-btn';
-              uploadBtn.onclick = ()=>{
-                const dialog = uploadcare.openDialog(null,{multiple:false});
-                dialog.done(f=>f.promise().done(async info=>{
-                  await setDoc(submissionsRef,{[userHash]:{url:info.cdnUrl,name:info.name}}, {merge:true});
-                  window.location.reload();
-                }));
-              };
-              div.append(uploadBtn);
-            }
-            // Vote buttons
-            const upBtn = document.createElement('button');
-            upBtn.textContent = `↑ ${counts[e.hash].up}`;
-            upBtn.className   = 'btn vote-btn' + (userVotes[e.hash]==='up'?' voted':'');
-            upBtn.onclick = async ()=>{
-              const userMap = votesByUser[userHash]||{};
-              if(userMap[e.hash]==='up') delete userMap[e.hash];
-              else userMap[e.hash]='up';
-              await setDoc(votesRef,{votesByUser:{[userHash]:userMap}},{merge:true});
+        // 1) If you haven't submitted, always show upload button
+        if (!data[userHash]) {
+          const uploadBtn = document.createElement("button");
+          uploadBtn.textContent = "Choose & Upload File";
+          uploadBtn.className = "upload-btn";
+          uploadBtn.onclick = () => {
+            const dialog = uploadcare.openDialog(null, { multiple: false });
+            dialog.done(file => file.promise().done(async info => {
+              await setDoc(
+                submissionsRef,
+                { [userHash]: { url: info.cdnUrl, name: info.name } },
+                { merge: true }
+              );
               window.location.reload();
-            };
-            const downBtn = document.createElement('button');
-            downBtn.textContent = `↓ ${counts[e.hash].down}`;
-            downBtn.className   = 'btn vote-btn' + (userVotes[e.hash]==='down'?' voted':'');
-            downBtn.onclick = async ()=>{
-              const userMap = votesByUser[userHash]||{};
-              if(userMap[e.hash]==='down') delete userMap[e.hash];
-              else userMap[e.hash]='down';
-              await setDoc(votesRef,{votesByUser:{[userHash]:userMap}},{merge:true});
-              window.location.reload();
-            };
-            div.append(upBtn, downBtn);
-            section.append(div);
-          });
-
-          output.append(section);
+            }));
+          };
+          section.append(uploadBtn);
         }
-      });
+
+        // 2) Now render all existing entries (including your own if present)
+        const entries = Object.entries(data)
+          .map(([h, v]) => ({ hash: h, url: v.url, name: v.name }));
+        // (Optionally sort here by vote score)
+
+        for (const e of entries) {
+          const isOwn = e.hash === userHash;
+          const div = document.createElement("div");
+          div.innerHTML = `<p>
+            <strong>${ isOwn ? "Your file" : `<code class="hash">${e.hash}</code>` }:</strong>
+            <a href="${e.url}" target="_blank">${e.name}</a>
+          </p>`;
+
+          // Replace button (only for your own)
+          if (isOwn) {
+            const replaceBtn = document.createElement("button");
+            replaceBtn.textContent = "Replace File";
+            replaceBtn.className   = "replace-btn";
+            replaceBtn.onclick = () => {
+              const dialog = uploadcare.openDialog(null, { multiple: false });
+              dialog.done(file => file.promise().done(async info => {
+                await setDoc(
+                  submissionsRef,
+                  { [userHash]: { url: info.cdnUrl, name: info.name } },
+                  { merge: true }
+                );
+                window.location.reload();
+              }));
+            };
+            div.append(replaceBtn);
+          }
+
+          section.append(div);
+        }
+
+        output.append(section);
+      }
     });
-  </script>
+  });
+</script>
+
 </body>
 </html>
