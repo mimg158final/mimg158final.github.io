@@ -58,66 +58,53 @@
 
     window.addEventListener("DOMContentLoaded", () => {
       onAuthStateChanged(auth, async user => {
-        // Redirect if not logged in
         if (!user) {
           window.location.href = 'index.html';
           return;
         }
+
         const email = user.email;
         document.getElementById('userEmail').textContent = email;
-
         const output = document.getElementById('output');
         output.innerHTML = '';
 
-        // Loop through assignments
         for (const key of assignments) {
           const snap = await getDoc(doc(db, 'submissions', key));
           const data = snap.exists() ? snap.data() : {};
-
           const section = document.createElement('section');
           section.innerHTML = `<h2>${key.replaceAll('_', ' ').toUpperCase()}</h2>`;
 
-          if (data[email]) {
-            // User submitted → show own + others
+          if (typeof data[email] === 'string' && data[email]) {
+            // user has submitted: show own + others
             section.innerHTML += `
               <p><strong>Your file:</strong> 
                 <a href="${data[email]}" target="_blank">view</a>
               </p>
             `;
-
+            // show others who submitted
             const ul = document.createElement('ul');
             for (const [other, url] of Object.entries(data)) {
-              if (other !== email) {
+              if (other !== email && typeof url === 'string' && url) {
                 const li = document.createElement('li');
                 li.innerHTML = `<strong>${other}:</strong> 
-                                <a href="${url}" target="_blank">view</a>`;
+                                  <a href="${url}" target="_blank">view</a>`;
                 ul.append(li);
               }
             }
             if (ul.children.length) section.append(ul);
           } else {
-            // Not submitted → show uploadcare dialog button
+            // not submitted: show uploader
             section.innerHTML += `<p><em>You haven’t submitted → upload to gain access</em></p>`;
-
             const btn = document.createElement('button');
             btn.textContent = 'Choose & Upload File';
-            btn.className   = 'upload-btn';
+            btn.className = 'upload-btn';
             btn.onclick = () => {
               const dialog = uploadcare.openDialog(null, { multiple: false });
               dialog.done(file => {
-                file.promise().done(async fileInfo => {
-                  const url = fileInfo.cdnUrl;
-                  try {
-                    await setDoc(
-                      doc(db, 'submissions', key),
-                      { [email]: url },
-                      { merge: true }
-                    );
-                    window.location.reload();
-                  } catch (err) {
-                    console.error('Firestore write failed', err);
-                    alert('Failed to save submission');
-                  }
+                file.done(async info => {
+                  const url = info.cdnUrl;
+                  await setDoc(doc(db, 'submissions', key), { [email]: url }, { merge: true });
+                  window.location.reload();
                 });
               });
             };
