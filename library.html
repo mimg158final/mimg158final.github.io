@@ -21,15 +21,16 @@
     li { margin: 0.5rem 0; }
     button.upload-btn { padding: 0.6rem 1rem; margin-top: 0.5rem; border: none; border-radius: 4px; background: #4CAF50; color: white; cursor: pointer; }
     button.upload-btn:hover { background: #45a049; }
+    code.hash { font-family: monospace; background: #eef; padding: 0.2rem 0.4rem; border-radius: 4px; }
   </style>
 </head>
 <body>
   <h1>Assignment Library</h1>
-  <p class="user">Signed in as <strong id="userEmail"></strong></p>
+  <p class="user">Signed in as <strong id="userEmail"></strong> (<code id="userHash" class="hash"></code>)</p>
   <div id="output"></div>
 
   <script type="module">
-    // Firebase imports
+    // Firebase & Firestore imports
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
     import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
     import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
@@ -40,12 +41,11 @@
       authDomain: "mimg158final.firebaseapp.com",
       projectId: "mimg158final"
     };
-
     const app  = initializeApp(firebaseConfig);
     const auth = getAuth(app);
     const db   = getFirestore(app);
 
-    // Assignment identifiers
+    // Assignments
     const assignments = [
       "7-17_lecture",
       "7-17_keim_2000",
@@ -56,12 +56,25 @@
       "7-24_wolfe_2014"
     ];
 
-    window.addEventListener("DOMContentLoaded", () => {
-      onAuthStateChanged(auth, async user => {
-        if (!user) return window.location.href = 'index.html';
+    // Hash function: SHA-256 → hex → first 8 chars
+    async function hashEmail(email) {
+      const enc = new TextEncoder().encode(email);
+      const buf = await crypto.subtle.digest('SHA-256', enc);
+      const arr = Array.from(new Uint8Array(buf));
+      const hex = arr.map(b => b.toString(16).padStart(2,'0')).join('');
+      return hex.slice(0,8);
+    }
 
+    window.addEventListener('DOMContentLoaded', () => {
+      onAuthStateChanged(auth, async user => {
+        if (!user) {
+          window.location.href = 'index.html';
+          return;
+        }
         const email = user.email;
         document.getElementById('userEmail').textContent = email;
+        const userHash = await hashEmail(email);
+        document.getElementById('userHash').textContent = userHash;
 
         const output = document.getElementById('output');
         output.innerHTML = '';
@@ -71,67 +84,48 @@
           const data = snap.exists() ? snap.data() : {};
 
           const section = document.createElement('section');
-          section.innerHTML = `<h2>${key.replaceAll('_', ' ').toUpperCase()}</h2>`;
+          section.innerHTML = `<h2>${key.replaceAll('_',' ').toUpperCase()}</h2>`;
 
-          const entry = data[email];
-          const hasEntry = entry && (typeof entry === 'string' || typeof entry === 'object');
-
-          if (hasEntry) {
-            // Determine URL and filename
-            const url = typeof entry === 'string' ? entry : entry.url;
-            const name = typeof entry === 'object' && entry.name ? entry.name : (url.split('/').pop() || 'file');
-
-            // Show user's file
+          // Check hashed key
+          if (data[userHash]) {
+            const entry = data[userHash];
+            const url  = entry.url;
+            const name = entry.name;
             section.innerHTML += `
               <p><strong>Your file:</strong>
-                 <a href="${url}" target="_blank">${name}</a>
+                <a href="${url}" target="_blank">${name}</a>
               </p>
             `;
-
-            // Show others
             const ul = document.createElement('ul');
-            for (const [other, val] of Object.entries(data)) {
-              if (other === email) continue;
-              if (!val) continue;
-              const oUrl  = typeof val === 'string' ? val : val.url;
-              const oName = typeof val === 'object' && val.name ? val.name : (oUrl.split('/').pop() || 'file');
-
+            for (const [h, val] of Object.entries(data)) {
+              if (h === userHash) continue;
+              if (!val || !val.url) continue;
+              const oName = val.name;
               const li = document.createElement('li');
-              li.innerHTML = `<strong>${other}:</strong> 
-                                <a href="${oUrl}" target="_blank">${oName}</a>`;
+              li.innerHTML = `<strong><code class="hash">${h}</code>:</strong> 
+                                <a href="${val.url}" target="_blank">${oName}</a>`;
               ul.append(li);
             }
             if (ul.children.length) section.append(ul);
           } else {
-            // No submission → uploader
             section.innerHTML += `<p><em>You haven’t submitted → upload to gain access</em></p>`;
-
             const btn = document.createElement('button');
             btn.textContent = 'Choose & Upload File';
             btn.className = 'upload-btn';
             btn.onclick = () => {
-              const dialog = uploadcare.openDialog(null, { multiple: false });
+              const dialog = uploadcare.openDialog(null,{multiple:false});
               dialog.done(file => {
                 file.promise().done(async info => {
                   const url  = info.cdnUrl;
                   const name = info.name;
-                  try {
-                    await setDoc(
-                      doc(db, 'submissions', key),
-                      { [email]: { url, name } },
-                      { merge: true }
-                    );
-                    window.location.reload();
-                  } catch (err) {
-                    console.error('Firestore write failed', err);
-                    alert('Failed to save submission');
-                  }
+                  const docRef = doc(db,'submissions',key);
+                  await setDoc(docRef, { [userHash]: { url, name } }, { merge:true });
+                  window.location.reload();
                 });
               });
             };
             section.append(btn);
           }
-
           output.append(section);
         }
       });
