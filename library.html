@@ -12,22 +12,99 @@
   <script src="https://ucarecdn.com/libs/widget/3.x/uploadcare.full.min.js"></script>
 
   <style>
-    body { font-family: sans-serif; background: #f4f4f4; margin: 0; padding: 2rem; max-width: 800px; }
-    h1 { text-align: center; }
-    p.user { font-size: 0.9rem; color: #333; }
-    section { background: #fff; padding: 1rem; margin: 1rem 0; border-radius: 6px; box-shadow: 0 1px 4px rgba(0,0,0,0.1); }
-    h2 { margin-top: 0; }
-    .btn { padding: 0.4rem 0.8rem; margin: 0.3rem; border: none; border-radius: 4px; cursor: pointer; }
-    .upload-btn { background: #4CAF50; color: #fff; }
-    .replace-btn { background: #FFA726; color: #fff; font-size: 0.8rem; }
-    .delete-btn { background: #F44336; color: #fff; font-size: 0.8rem; }
-    .edit-btn { background: #2196F3; color: #fff; font-size: 0.8rem; position: absolute; top: 0; left: calc(100% + 8px); opacity: 0; transition: opacity 0.2s; }
-    .small-btn { padding: 0.3rem 0.6rem; margin-right: 0.3rem; }
-    .options-container { display: none; margin-top: 0.5rem; }
-    .your-file-container { position: relative; display: inline-block; }
-    .your-file-container:hover .edit-btn { opacity: 1; }
-    .btn:hover { opacity: 0.9; }
-    code.hash { font-family: monospace; background: #eef; padding: 0.2rem 0.4rem; border-radius: 4px; }
+    body {
+      font-family: sans-serif;
+      background: #f4f4f4;
+      margin: 0;
+      padding: 2rem;
+    }
+    h1 {
+      text-align: center;
+      margin-bottom: 1rem;
+    }
+    p.user {
+      font-size: 0.9rem;
+      color: #333;
+      text-align: center;
+      margin-bottom: 2rem;
+    }
+    #output {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1rem;
+    }
+    section {
+      background: #fff;
+      padding: 1rem;
+      border-radius: 6px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+      position: relative;
+      display: flex;
+      flex-direction: column;
+    }
+    h2 {
+      margin-top: 0;
+      font-size: 1.1rem;
+    }
+    .btn {
+      padding: 0.4rem 0.8rem;
+      margin: 0.3rem;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    .upload-btn {
+      background: #4CAF50;
+      color: #fff;
+      align-self: start;
+    }
+    .edit-btn {
+      background: #2196F3;
+      color: #fff;
+      font-size: 0.8rem;
+      position: absolute;
+      top: 1rem;
+      right: 1rem;
+      opacity: 0;
+      transition: opacity 0.2s;
+    }
+    .your-file-container:hover .edit-btn {
+      opacity: 1;
+    }
+    .replace-btn {
+      background: #FFA726;
+      color: #fff;
+      font-size: 0.8rem;
+    }
+    .delete-btn {
+      background: #F44336;
+      color: #fff;
+      font-size: 0.8rem;
+    }
+    .small-btn {
+      padding: 0.3rem 0.6rem;
+      margin-right: 0.3rem;
+    }
+    .options-container {
+      display: none;
+      margin-top: 0.5rem;
+    }
+    .your-file-container {
+      position: relative;
+    }
+    ul {
+      margin-top: auto;
+      padding-left: 1rem;
+    }
+    li {
+      margin: 0.3rem 0;
+    }
+    code.hash {
+      font-family: monospace;
+      background: #eef;
+      padding: 0.2rem 0.4rem;
+      border-radius: 4px;
+    }
   </style>
 </head>
 <body>
@@ -40,7 +117,6 @@
     import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
     import { getFirestore, doc, getDoc, setDoc, updateDoc, deleteField } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
-    // Firebase config
     const firebaseConfig = {
       apiKey: "AIzaSyBwASsafY-yc1g9m8o7786UXxKzzduUY1Y",
       authDomain: "mimg158final.firebaseapp.com",
@@ -76,7 +152,6 @@
         const output = document.getElementById('output');
         output.innerHTML = '';
 
-        // Close options when clicking outside
         document.addEventListener('click', e => {
           document.querySelectorAll('.options-container').forEach(div => {
             const container = div.parentElement;
@@ -92,7 +167,6 @@
           const section = document.createElement('section');
           section.innerHTML = `<h2>${key.replaceAll('_',' ').toUpperCase()}</h2>`;
 
-          // Show upload if no submission
           if (!data[userHash]) {
             section.innerHTML += `<p><em>You haven’t submitted → upload to gain access</em></p>`;
             const uploadBtn = document.createElement('button');
@@ -110,22 +184,18 @@
             continue;
           }
 
-          // User submitted: your file + edit
           const entry = data[userHash];
           const yourFileDiv = document.createElement('div');
           yourFileDiv.className = 'your-file-container';
           yourFileDiv.innerHTML = `<p><strong>Your file:</strong> <a href="${entry.url}" target="_blank">${entry.name}</a></p>`;
 
-          // Edit button
           const editBtn = document.createElement('button');
           editBtn.textContent = '✏️';
           editBtn.className = 'btn edit-btn';
 
-          // Options container
           const optionsDiv = document.createElement('div');
           optionsDiv.className = 'options-container';
 
-          // Replace option
           const replaceBtn = document.createElement('button');
           replaceBtn.textContent = 'Replace';
           replaceBtn.className = 'btn replace-btn small-btn';
@@ -144,7 +214,6 @@
             }));
           };
 
-          // Delete option
           const deleteBtn = document.createElement('button');
           deleteBtn.textContent = 'Delete';
           deleteBtn.className = 'btn delete-btn small-btn';
@@ -168,13 +237,11 @@
           yourFileDiv.append(editBtn, optionsDiv);
           section.append(yourFileDiv);
 
-          // List others' submissions
           const ul = document.createElement('ul');
           for (const [h,val] of Object.entries(data)) {
             if (h === userHash || !val.url) continue;
             const li = document.createElement('li');
-            li.innerHTML = `<strong><code class="hash">${h}</code>:</strong> ` +
-                           `<a href="${val.url}" target="_blank">${val.name}</a>`;
+            li.innerHTML = `<strong><code class="hash">${h}</code>:</strong> <a href="${val.url}" target="_blank">${val.name}</a>`;
             ul.append(li);
           }
           if (ul.children.length) section.append(ul);
