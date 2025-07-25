@@ -32,7 +32,8 @@
   </style>
 </head>
 <body>
-  <h1>Assignment Library</h1>
+  <h1>Assignment Q&A Library</h1>
+  <h6>upload your work to unlock peers’ submissions. PDF format preferred</h6>
   <p class="user">Signed in as <strong id="userEmail"></strong> (<code id="userHash" class="hash"></code>)</p>
   <div id="output"></div>
 
@@ -144,7 +145,6 @@
             const li=document.createElement('li');
             const a=document.createElement('a'); a.href=v.url; a.target='_blank'; a.textContent=v.name;
             a.onclick=async()=>{
-              alert('you clicked');
               await setDoc(viewRef,{[userHash]:true},{merge:true});
               editBtn.style.display='none'; opts.style.display='none';
             };
