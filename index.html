@@ -1,107 +1,11 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Upload Assignments</title>
-
-  <!-- Uploadcare widget -->
-  <script>
-    UPLOADCARE_PUBLIC_KEY = "80954b866f0b203d4c24";
-  </script>
-  <script src="https://ucarecdn.com/libs/widget/3.x/uploadcare.full.min.js"></script>
-
-  <style>
-    body {
-      font-family: sans-serif;
-      background: #f7f7f7;
-      max-width: 800px;
-      margin: 2rem auto;
-      padding: 2rem;
-    }
-    h1 { text-align: center; }
-    section {
-      background: #fff;
-      padding: 1.5rem;
-      margin-bottom: 2rem;
-      border-radius: 8px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-    }
-    label {
-      display: block;
-      margin-top: 1rem;
-      font-weight: bold;
-    }
-    input, button {
-      width: 100%;
-      padding: 0.6rem;
-      margin-top: 0.4rem;
-      border-radius: 4px;
-      border: 1px solid #ccc;
-      box-sizing: border-box;
-    }
-    button {
-      background: #4285F4;
-      color: white;
-      border: none;
-      cursor: pointer;
-      margin-top: 1rem;
-    }
-    button:hover {
-      background: #3367D6;
-    }
-    [hidden] { display: none !important; }
-  </style>
-</head>
-
-<body>
-  <!-- Sign‑in / Sign‑up -->
-  <section id="login">
-    <h1>Sign In / Sign Up</h1>
-    <button onclick="signInWithGoogle()">Sign in with Google</button>
-    <div style="text-align:center; margin:1rem 0;">— or —</div>
-    <label for="formEmail">Email</label>
-    <input id="formEmail" type="email" placeholder="you@example.com" />
-    <label for="formPass">Password</label>
-    <input id="formPass" type="password" placeholder="password" />
-    <button onclick="signInEmail()">Login</button>
-    <button onclick="signUpEmail()">Sign Up</button>
-  </section>
-
-  <!-- Upload form (shown when signed in) -->
-  <section id="app" hidden>
-    <h1>Submit Your Assignments</h1>
-    <form id="form">
-      <label>Email</label>
-      <input id="uploadEmail" type="email" readonly />
-
-      <label>7/17 Lecture</label>
-      <input type="hidden" role="uploadcare-uploader" name="file1" data-multiple="false" required />
-
-      <label>7/17 Keim, 2000 Paper</label>
-      <input type="hidden" role="uploadcare-uploader" name="file2" data-multiple="false" required />
-
-      <label>7/17 Keim, 2008 Paper</label>
-      <input type="hidden" role="uploadcare-uploader" name="file3" data-multiple="false" required />
-
-      <label>7/22 Lecture</label>
-      <input type="hidden" role="uploadcare-uploader" name="file4" data-multiple="false" required />
-
-      <label>7/22 Welch, 2016 Paper</label>
-      <input type="hidden" role="uploadcare-uploader" name="file5" data-multiple="false" required />
-
-      <label>7/24 Lecture</label>
-      <input type="hidden" role="uploadcare-uploader" name="file6" data-multiple="false" required />
-
-      <label>7/24 Wolfe, 2014 Paper</label>
-      <input type="hidden" role="uploadcare-uploader" name="file7" data-multiple="false" required />
-
-      <button type="submit">Submit & Go to Library</button>
-    </form>
-  </section>
-
-  <!-- Firebase & Firestore -->
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Login</title>
   <script type="module">
+    // Firebase Initialization
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
     import {
       getAuth,
@@ -111,91 +15,130 @@
       createUserWithEmailAndPassword,
       onAuthStateChanged
     } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-    import {
-      getFirestore,
-      doc,
-      setDoc
-    } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
-    // Firebase config
     const firebaseConfig = {
       apiKey: "AIzaSyBwASsafY-yc1g9m8o7786UXxKzzduUY1Y",
       authDomain: "mimg158final.firebaseapp.com",
       projectId: "mimg158final"
     };
-    const app      = initializeApp(firebaseConfig);
-    const auth     = getAuth(app);
-    const db       = getFirestore(app);
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
     const provider = new GoogleAuthProvider();
 
-    // Element refs
-    const loginSection = document.getElementById("login");
-    const appSection   = document.getElementById("app");
-    const formEmail    = document.getElementById("formEmail");
-    const formPass     = document.getElementById("formPass");
-    const uploadEmail  = document.getElementById("uploadEmail");
-    const form         = document.getElementById("form");
-
-    // Auth functions
+    // Google Sign-In
     window.signInWithGoogle = async () => {
-      try { await signInWithPopup(auth, provider); }
-      catch(e){ alert("Google sign‑in failed"); console.error(e); }
-    };
-    window.signInEmail = async () => {
       try {
-        await signInWithEmailAndPassword(auth, formEmail.value, formPass.value);
-      } catch(e) {
-        alert("Email sign‑in failed"); console.error(e);
-      }
-    };
-    window.signUpEmail = async () => {
-      try {
-        await createUserWithEmailAndPassword(auth, formEmail.value, formPass.value);
-      } catch(e) {
-        alert("Sign‑up failed"); console.error(e);
+        await signInWithPopup(auth, provider);
+      } catch (err) {
+        console.error(err);
+        alert("Google sign-in failed");
       }
     };
 
-    // Update UI on auth state change
+    // Email/Password Sign-In
+    window.signInEmail = async () => {
+      const email = document.getElementById('email').value;
+      const pass  = document.getElementById('password').value;
+      try {
+        await signInWithEmailAndPassword(auth, email, pass);
+      } catch (err) {
+        console.error(err);
+        alert("Email sign-in failed");
+      }
+    };
+
+    // Email/Password Sign-Up
+    window.signUpEmail = async () => {
+      const email = document.getElementById('email').value;
+      const pass  = document.getElementById('password').value;
+      try {
+        await createUserWithEmailAndPassword(auth, email, pass);
+      } catch (err) {
+        console.error(err);
+        alert("Sign-up failed");
+      }
+    };
+
+    // Redirect on Auth State Change
     onAuthStateChanged(auth, user => {
       if (user) {
-        loginSection.hidden = true;
-        appSection.hidden   = false;
-        uploadEmail.value   = user.email;
-      } else {
-        loginSection.hidden = false;
-        appSection.hidden   = true;
+        window.location.href = 'library.html';
       }
-    });
-
-    // Handle form submission
-    form.addEventListener("submit", async e => {
-      e.preventDefault();
-      const user = auth.currentUser;
-      if (!user) return alert("You must sign in first.");
-
-      const email = user.email;
-      const keys = [
-        "7-17_lecture",
-        "7-17_keim_2000",
-        "7-17_keim_2008",
-        "7-22_lecture",
-        "7-22_welch_2016",
-        "7-24_lecture",
-        "7-24_wolfe_2014"
-      ];
-      const widgets = keys.map((_, i) => form[`file${i+1}`].value);
-
-      for (let i = 0; i < keys.length; i++) {
-        await setDoc(
-          doc(db, "submissions", keys[i]),
-          { [email]: widgets[i] },
-          { merge: true }
-        );
-      }
-
-      window.location.href = "library.html";
     });
   </script>
+
+  <style>
+    body {
+      font-family: sans-serif;
+      background: #f7f7f7;
+      margin: 0;
+      display: flex;
+      height: 100vh;
+      align-items: center;
+      justify-content: center;
+    }
+    .container {
+      background: white;
+      padding: 2rem;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      width: 320px;
+      text-align: center;
+    }
+    input {
+      width: 100%;
+      padding: 0.5rem;
+      margin: 0.5rem 0;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      box-sizing: border-box;
+    }
+    button {
+      width: 100%;
+      padding: 0.6rem;
+      margin-top: 0.5rem;
+      border: none;
+      border-radius: 4px;
+      background: #4285F4;
+      color: white;
+      cursor: pointer;
+      font-size: 1rem;
+    }
+    button:hover { background: #3367D6; }
+    .separator {
+      margin: 1rem 0;
+      position: relative;
+    }
+    .separator::before,
+    .separator::after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      width: 40%;
+      height: 1px;
+      background: #ccc;
+    }
+    .separator::before { left: 0; }
+    .separator::after { right: 0; }
+    .separator span {
+      background: white;
+      padding: 0 0.5rem;
+      position: relative;
+      z-index: 1;
+      color: #666;
+      font-size: 0.9rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>Sign In / Sign Up</h2>
+    <button onclick="signInWithGoogle()">Sign in with Google</button>
+    <div class="separator"><span>or</span></div>
+    <input id="email" type="email" placeholder="Email" />
+    <input id="password" type="password" placeholder="Password" />
+    <button onclick="signInEmail()">Login</button>
+    <button onclick="signUpEmail()">Sign Up</button>
+  </div>
 </body>
 </html>
