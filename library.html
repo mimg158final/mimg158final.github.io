@@ -235,8 +235,13 @@
           Object.entries(data).forEach(([h,val]) => {
             if (h === userHash || !val.url) return;
             const li = document.createElement('li');
-            li.innerHTML = `<strong><code class="hash">${h}</code>:</strong> ` +
-                           `<a href="${val.url}" target="_blank">${val.name}</a>`;
+            const link = document.createElement('a');
+            link.href = val.url;
+            link.target = '_blank';
+            link.textContent = val.name;
+            link.onclick = () => alert("you clicked");
+            li.innerHTML = `<strong><code class=\"hash\">${h}</code>:</strong> `;
+            li.append(link);
             ul.append(li);
           });
           if (ul.children.length) section.append(ul);
