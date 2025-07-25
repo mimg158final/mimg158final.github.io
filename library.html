@@ -17,14 +17,9 @@
     p.user { font-size: 0.9rem; color: #333; }
     section { background: #fff; padding: 1rem; margin: 1rem 0; border-radius: 6px; box-shadow: 0 1px 4px rgba(0,0,0,0.1); }
     h2 { margin-top: 0; }
-    ul { list-style: none; padding: 0; }
-    li { margin: 0.5rem 0; }
-    .btn { padding: 0.4rem 0.8rem; margin: 0 0.3rem; border: none; border-radius: 4px; cursor: pointer; }
+    .btn { padding: 0.4rem 0.8rem; margin: 0.3rem; border: none; border-radius: 4px; cursor: pointer; }
     .upload-btn { background: #4CAF50; color: #fff; }
     .replace-btn { background: #FFA726; color: #fff; }
-    .vote-btn { background: #2196F3; color: #fff; font-size: 0.9rem; }
-    .vote-btn.voted { opacity: 0.7; }
-    button:hover { opacity: 0.9; }
     code.hash { font-family: monospace; background: #eef; padding: 0.2rem 0.4rem; border-radius: 4px; }
   </style>
 </head>
@@ -33,125 +28,111 @@
   <p class="user">Signed in as <strong id="userEmail"></strong> (<code id="userHash" class="hash"></code>)</p>
   <div id="output"></div>
 
-<script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-  import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-  import {
-    getFirestore,
-    doc,
-    getDoc,
-    setDoc
-  } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+    import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
-  // Firebase config
-  const firebaseConfig = {
-    apiKey: "AIzaSyBwASsafY-yc1g9m8o7786UXxKzzduUY1Y",
-    authDomain: "mimg158final.firebaseapp.com",
-    projectId: "mimg158final"
-  };
-  const app  = initializeApp(firebaseConfig);
-  const auth = getAuth(app);
-  const db   = getFirestore(app);
+    // Firebase config
+    const firebaseConfig = {
+      apiKey: "AIzaSyBwASsafY-yc1g9m8o7786UXxKzzduUY1Y",
+      authDomain: "mimg158final.firebaseapp.com",
+      projectId: "mimg158final"
+    };
+    const app  = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db   = getFirestore(app);
 
-  // Assignments
-  const assignments = [
-    "7-17_lecture",
-    "7-17_keim_2000",
-    "7-17_keim_2008",
-    "7-22_lecture",
-    "7-22_welch_2016",
-    "7-24_lecture",
-    "7-24_wolfe_2014"
-  ];
+    // Assignment keys
+    const assignments = [
+      "7-17_lecture",
+      "7-17_keim_2000",
+      "7-17_keim_2008",
+      "7-22_lecture",
+      "7-22_welch_2016",
+      "7-24_lecture",
+      "7-24_wolfe_2014"
+    ];
 
-  // SHA-256 → first 8 hex chars
-  async function hashEmail(email) {
-    const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(email));
-    return Array.from(new Uint8Array(buf))
-      .map(b => b.toString(16).padStart(2, "0"))
-      .join("")
-      .slice(0, 8);
-  }
+    // SHA-256 → first 8 hex chars
+    async function hashEmail(email) {
+      const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(email));
+      return Array.from(new Uint8Array(buf))
+        .map(b => b.toString(16).padStart(2,'0')).join('').slice(0,8);
+    }
 
-  window.addEventListener("DOMContentLoaded", () => {
-    onAuthStateChanged(auth, async user => {
-      if (!user) return window.location.href = "index.html";
-      const email = user.email;
-      document.getElementById("userEmail").textContent = email;
-      const userHash = await hashEmail(email);
-      document.getElementById("userHash").textContent = userHash;
-
-      const output = document.getElementById("output");
-      output.innerHTML = "";
-
-      for (const key of assignments) {
-        const submissionsRef = doc(db, "submissions", key);
-        const snap = await getDoc(submissionsRef);
-        const data = snap.exists() ? snap.data() : {};
-
-        // Build section container
-        const section = document.createElement("section");
-        section.innerHTML = `<h2>${key.replaceAll("_", " ").toUpperCase()}</h2>`;
-
-        // 1) If you haven't submitted, always show upload button
-        if (!data[userHash]) {
-          const uploadBtn = document.createElement("button");
-          uploadBtn.textContent = "Choose & Upload File";
-          uploadBtn.className = "upload-btn";
-          uploadBtn.onclick = () => {
-            const dialog = uploadcare.openDialog(null, { multiple: false });
-            dialog.done(file => file.promise().done(async info => {
-              await setDoc(
-                submissionsRef,
-                { [userHash]: { url: info.cdnUrl, name: info.name } },
-                { merge: true }
-              );
-              window.location.reload();
-            }));
-          };
-          section.append(uploadBtn);
+    window.addEventListener('DOMContentLoaded', () => {
+      onAuthStateChanged(auth, async user => {
+        if (!user) {
+          window.location.href = 'index.html';
+          return;
         }
+        const email = user.email;
+        document.getElementById('userEmail').textContent = email;
+        const userHash = await hashEmail(email);
+        document.getElementById('userHash').textContent = userHash;
 
-        // 2) Now render all existing entries (including your own if present)
-        const entries = Object.entries(data)
-          .map(([h, v]) => ({ hash: h, url: v.url, name: v.name }));
-        // (Optionally sort here by vote score)
+        const output = document.getElementById('output');
+        output.innerHTML = '';
 
-        for (const e of entries) {
-          const isOwn = e.hash === userHash;
-          const div = document.createElement("div");
-          div.innerHTML = `<p>
-            <strong>${ isOwn ? "Your file" : `<code class="hash">${e.hash}</code>` }:</strong>
-            <a href="${e.url}" target="_blank">${e.name}</a>
-          </p>`;
+        for (const key of assignments) {
+          const ref = doc(db, 'submissions', key);
+          const snap = await getDoc(ref);
+          const data = snap.exists() ? snap.data() : {};
 
-          // Replace button (only for your own)
-          if (isOwn) {
-            const replaceBtn = document.createElement("button");
-            replaceBtn.textContent = "Replace File";
-            replaceBtn.className   = "replace-btn";
-            replaceBtn.onclick = () => {
+          const section = document.createElement('section');
+          section.innerHTML = `<h2>${key.replaceAll('_',' ').toUpperCase()}</h2>`;
+
+          // If user hasn't submitted, only show upload prompt
+          if (!data[userHash]) {
+            section.innerHTML += `<p><em>You haven’t submitted → upload to gain access</em></p>`;
+            const uploadBtn = document.createElement('button');
+            uploadBtn.textContent = 'Choose & Upload File';
+            uploadBtn.className = 'btn upload-btn';
+            uploadBtn.onclick = () => {
               const dialog = uploadcare.openDialog(null, { multiple: false });
               dialog.done(file => file.promise().done(async info => {
-                await setDoc(
-                  submissionsRef,
-                  { [userHash]: { url: info.cdnUrl, name: info.name } },
-                  { merge: true }
-                );
+                await setDoc(ref, { [userHash]: { url: info.cdnUrl, name: info.name } }, { merge: true });
                 window.location.reload();
               }));
             };
-            div.append(replaceBtn);
+            section.append(uploadBtn);
+            output.append(section);
+            continue;  // skip listing others
           }
 
-          section.append(div);
+          // User has submitted: show own file + replace, then list others
+          const me = data[userHash];
+          section.innerHTML += `<p><strong>Your file:</strong> 
+            <a href="${me.url}" target="_blank">${me.name}</a></p>`;
+
+          const replaceBtn = document.createElement('button');
+          replaceBtn.textContent = 'Replace File';
+          replaceBtn.className = 'btn replace-btn';
+          replaceBtn.onclick = () => {
+            const dialog = uploadcare.openDialog(null, { multiple: false });
+            dialog.done(file => file.promise().done(async info => {
+              await setDoc(ref, { [userHash]: { url: info.cdnUrl, name: info.name } }, { merge: true });
+              window.location.reload();
+            }));
+          };
+          section.append(replaceBtn);
+
+          // List other users' submissions
+          const ul = document.createElement('ul');
+          for (const [h, val] of Object.entries(data)) {
+            if (h === userHash || !val.url) continue;
+            const li = document.createElement('li');
+            li.innerHTML = `<strong><code class="hash">${h}</code>:</strong> 
+              <a href="${val.url}" target="_blank">${val.name}</a>`;
+            ul.append(li);
+          }
+          if (ul.children.length) section.append(ul);
+
+          output.append(section);
         }
-
-        output.append(section);
-      }
+      });
     });
-  });
-</script>
-
+  </script>
 </body>
 </html>
