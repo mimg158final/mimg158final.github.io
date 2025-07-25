@@ -12,22 +12,24 @@
   <script src="https://ucarecdn.com/libs/widget/3.x/uploadcare.full.min.js"></script>
 
   <style>
-    body { font-family: sans-serif; padding: 2rem; max-width: 800px; margin: auto; background: #f4f4f4; }
+    body { font-family: sans-serif; background: #f4f4f4; margin: 0; padding: 2rem; max-width: 800px; }
     h1 { text-align: center; }
     p.user { font-size: 0.9rem; color: #333; }
-    section { background: #fff; padding: 1rem; margin: 1rem 0; border-radius: 6px; box-shadow: 0 1px 4px rgba(0,0,0,.1); }
+    section { background: #fff; padding: 1rem; margin: 1rem 0; border-radius: 6px; box-shadow: 0 1px 4px rgba(0,0,0,0.1); }
+    h2 { margin-top: 0; }
     ul { list-style: none; padding: 0; }
-    li { margin: .5rem 0; }
-    button.upload-btn { padding: .6rem 1rem; margin-top: .5rem; border: none; border-radius: 4px; background: #4CAF50; color: #fff; cursor: pointer; }
+    li { margin: 0.5rem 0; }
+    button.upload-btn { padding: 0.6rem 1rem; margin-top: 0.5rem; border: none; border-radius: 4px; background: #4CAF50; color: white; cursor: pointer; }
     button.upload-btn:hover { background: #45a049; }
   </style>
 </head>
 <body>
-  <h1>Library</h1>
+  <h1>Assignment Library</h1>
   <p class="user">Signed in as <strong id="userEmail"></strong></p>
   <div id="output"></div>
 
   <script type="module">
+    // Firebase imports
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
     import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
     import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
@@ -38,10 +40,12 @@
       authDomain: "mimg158final.firebaseapp.com",
       projectId: "mimg158final"
     };
-    const app = initializeApp(firebaseConfig);
+
+    const app  = initializeApp(firebaseConfig);
     const auth = getAuth(app);
     const db   = getFirestore(app);
 
+    // Assignment keys
     const assignments = [
       "7-17_lecture",
       "7-17_keim_2000",
@@ -54,64 +58,65 @@
 
     window.addEventListener("DOMContentLoaded", () => {
       onAuthStateChanged(auth, async user => {
+        // Redirect if not logged in
         if (!user) {
-          alert("Please sign in first.");
-          return window.location.href = "index.html";
+          window.location.href = 'index.html';
+          return;
         }
         const email = user.email;
-        document.getElementById("userEmail").textContent = email;
+        document.getElementById('userEmail').textContent = email;
 
-        const output = document.getElementById("output");
+        const output = document.getElementById('output');
         output.innerHTML = '';
 
+        // Loop through assignments
         for (const key of assignments) {
-          // fetch this assignment's submissions
-          const snap = await getDoc(doc(db, "submissions", key));
+          const snap = await getDoc(doc(db, 'submissions', key));
           const data = snap.exists() ? snap.data() : {};
 
-          // section for this assignment
-          const section = document.createElement("section");
-          section.innerHTML = `<h2>${key.replaceAll("_"," ").toUpperCase()}</h2>`;
+          const section = document.createElement('section');
+          section.innerHTML = `<h2>${key.replaceAll('_', ' ').toUpperCase()}</h2>`;
 
           if (data[email]) {
-            // user has submitted → show their file
+            // User submitted → show own + others
             section.innerHTML += `
-              <p><strong>Your file:</strong>
+              <p><strong>Your file:</strong> 
                 <a href="${data[email]}" target="_blank">view</a>
               </p>
             `;
-            // show others' submissions
-            const ul = document.createElement("ul");
+
+            const ul = document.createElement('ul');
             for (const [other, url] of Object.entries(data)) {
               if (other !== email) {
-                const li = document.createElement("li");
-                li.innerHTML = `<strong>${other}:</strong> <a href="${url}" target="_blank">view</a>`;
+                const li = document.createElement('li');
+                li.innerHTML = `<strong>${other}:</strong> 
+                                <a href="${url}" target="_blank">view</a>`;
                 ul.append(li);
               }
             }
             if (ul.children.length) section.append(ul);
           } else {
-            // user hasn't submitted → show uploader
+            // Not submitted → show uploadcare dialog button
             section.innerHTML += `<p><em>You haven’t submitted → upload to gain access</em></p>`;
 
-            const btn = document.createElement("button");
-            btn.textContent = "Choose & Upload File";
-            btn.className = "upload-btn";
+            const btn = document.createElement('button');
+            btn.textContent = 'Choose & Upload File';
+            btn.className   = 'upload-btn';
             btn.onclick = () => {
               const dialog = uploadcare.openDialog(null, { multiple: false });
-              dialog.done(filePromise => {
-                filePromise.done(async fileInfo => {
+              dialog.done(file => {
+                file.promise().done(async fileInfo => {
                   const url = fileInfo.cdnUrl;
                   try {
                     await setDoc(
-                      doc(db, "submissions", key),
+                      doc(db, 'submissions', key),
                       { [email]: url },
                       { merge: true }
                     );
                     window.location.reload();
                   } catch (err) {
-                    console.error(err);
-                    alert("Failed to save submission.");
+                    console.error('Firestore write failed', err);
+                    alert('Failed to save submission');
                   }
                 });
               });
