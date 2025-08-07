@@ -18,7 +18,15 @@
     h6 { text-align: center; margin-bottom: 1rem; }
     p.user { font-size: 0.9rem; color: #333; text-align: center; margin-bottom: 2rem; }
     #output { display: block; }
-    section { background: #fff; padding: 1rem; margin-bottom: 1rem; border-radius: 6px; box-shadow: 0 1px 4px rgba(0,0,0,0.1); position: relative; }
+    section {
+      background: #fff;
+      padding: 1rem;
+      margin-bottom: 1rem;
+      border-radius: 6px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+      position: relative;
+      transition: background 0.6s ease, transform 0.4s ease, box-shadow 0.4s ease;
+    }
     h2 { margin-top: 0; font-size: 1.1rem; }
     .btn { padding: 0.4rem 0.8rem; margin: 0.3rem; border: none; border-radius: 4px; cursor: pointer; }
     .upload-btn { background: #4CAF50; color: #fff; }
@@ -65,6 +73,29 @@
       "7-22_lecture", "7-22_welch_2016", "7-24_lecture", "7-24_wolfe_2014", "final Q&A"
     ];
 
+    const userBehavior = {
+      clicksPerFile: {},
+      hoverTime: {},
+      uploaded: {}
+    };
+
+    function applyMutation(section, key) {
+      const clicks = userBehavior.clicksPerFile[key] || 0;
+      const hover = userBehavior.hoverTime[key] || 0;
+      const uploaded = userBehavior.uploaded[key] || false;
+
+      const bg = `hsl(${(hover * 10) % 360}, 70%, 90%)`;
+      section.style.background = bg;
+
+      section.style.transform = `scale(${1 + Math.min(0.02 * clicks, 0.2)})`;
+
+      if (uploaded) {
+        section.style.boxShadow = '0 0 12px 2px #4CAF50';
+        setTimeout(() => section.style.boxShadow = '', 1000);
+        userBehavior.uploaded[key] = false;
+      }
+    }
+
     async function hashEmail(email) {
       const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(email));
       return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('').slice(0,8);
@@ -98,6 +129,16 @@
           const section = document.createElement('section');
           section.innerHTML = `<h2>${key.replaceAll('_',' ').toUpperCase()}</h2>`;
 
+          let hoverStart = 0;
+          section.addEventListener('mouseenter', () => {
+            hoverStart = Date.now();
+          });
+          section.addEventListener('mouseleave', () => {
+            const t = Date.now() - hoverStart;
+            userBehavior.hoverTime[key] = (userBehavior.hoverTime[key] || 0) + t / 1000;
+            applyMutation(section, key);
+          });
+
           if (!data[userHash]) {
             section.innerHTML += `<p><em>You haven’t submitted → upload to gain access</em></p>`;
             const uploadBtn = document.createElement('button');
@@ -106,6 +147,8 @@
             uploadBtn.onclick = () => {
               uploadcare.openDialog(null,{multiple:false}).done(file=>file.promise().done(async info=>{
                 await setDoc(subRef,{[userHash]:{url:info.cdnUrl,name:info.name}},{merge:true});
+                userBehavior.uploaded[key] = true;
+                applyMutation(section, key);
                 window.location.reload();
               }));
             };
@@ -114,24 +157,19 @@
             continue;
           }
 
-          // user's file
           const entry = data[userHash];
           const yourDiv = document.createElement('div');
           yourDiv.className = 'your-file-container';
           yourDiv.innerHTML = `<p><strong>Your file:</strong> <a href="${entry.url}" target="_blank">${entry.name}</a></p>`;
 
-          // edit button
           const editBtn = document.createElement('button');
           editBtn.textContent = '✏️';
           editBtn.className = 'btn edit-btn';
           if (hasViewed) editBtn.style.display = 'none';
 
-          // options
           const opts = document.createElement('div'); opts.className = 'options-container';
-          // replace
           const rep = document.createElement('button'); rep.textContent='Replace'; rep.className='btn replace-btn small-btn';
-          let rc=false; rep.onclick=()=>{if(!rc){rc=true;rep.textContent='Confirm Replace';setTimeout(()=>{rc=false;rep.textContent='Replace'},10000);return;}uploadcare.openDialog(null,{multiple:false}).done(file=>file.promise().done(async info=>{await setDoc(subRef,{[userHash]:{url:info.cdnUrl,name:info.name}},{merge:true});window.location.reload();}));};
-          // delete
+          let rc=false; rep.onclick=()=>{if(!rc){rc=true;rep.textContent='Confirm Replace';setTimeout(()=>{rc=false;rep.textContent='Replace'},10000);return;}uploadcare.openDialog(null,{multiple:false}).done(file=>file.promise().done(async info=>{await setDoc(subRef,{[userHash]:{url:info.cdnUrl,name:info.name}},{merge:true});userBehavior.uploaded[key] = true;applyMutation(section, key);window.location.reload();}));};
           const del = document.createElement('button'); del.textContent='Delete'; del.className='btn delete-btn small-btn';
           let dc=false; del.onclick=async()=>{if(!dc){dc=true;del.textContent='Confirm Delete';setTimeout(()=>{dc=false;del.textContent='Delete'},10000);return;}await updateDoc(subRef,{[userHash]:deleteField()});window.location.reload();};
           opts.append(rep,del);
@@ -140,13 +178,14 @@
           yourDiv.append(editBtn,opts);
           section.append(yourDiv);
 
-          // others
           const ul=document.createElement('ul');
           Object.entries(data).forEach(([h,v])=>{
             if(h===userHash||!v.url) return;
             const li=document.createElement('li');
             const a=document.createElement('a'); a.href=v.url; a.target='_blank'; a.textContent=v.name;
             a.onclick=async()=>{
+              userBehavior.clicksPerFile[key] = (userBehavior.clicksPerFile[key] || 0) + 1;
+              applyMutation(section, key);
               await setDoc(viewRef,{[userHash]:true},{merge:true});
               editBtn.style.display='none'; opts.style.display='none';
             };
@@ -162,7 +201,7 @@
     });
   </script>
   <p style="text-align:center;font-size:0.8rem;color:#777;margin-top:2rem;">
-  © 2025 it works until it doesn't, Inc.<br>All rights reserved. Some lefts reserved.
-</p>
+    © 2025 it works until it doesn't, Inc.<br>All rights reserved. Some lefts reserved.
+  </p>
 </body>
 </html>
